@@ -1,0 +1,18 @@
+--cpu Cortex-M3
+".\objects\m355_temperature\ad5940_temperature.o"
+".\objects\m355_temperature\main.o"
+".\objects\m355_temperature\aducm355port.o"
+".\objects\m355_temperature\retarget.o"
+".\objects\m355_temperature\clklib.o"
+".\objects\m355_temperature\diolib.o"
+".\objects\m355_temperature\gptlib.o"
+".\objects\m355_temperature\intlib.o"
+".\objects\m355_temperature\pwrlib.o"
+".\objects\m355_temperature\urtlib.o"
+".\objects\m355_temperature\ad5940.o"
+".\objects\m355_temperature\startup_aducm355.o"
+".\objects\m355_temperature\system_aducm355.o"
+--strict --scatter ".\Objects\M355_Temperature\M355_Temperature.sct"
+--summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols
+--info sizes --info totals --info unused --info veneers
+--list ".\Listings\M355_Temperature.map" -o .\Objects\M355_Temperature\M355_Temperature.axf
