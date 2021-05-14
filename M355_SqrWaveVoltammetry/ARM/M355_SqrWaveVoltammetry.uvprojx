@@ -400,11 +400,6 @@
               <FilePath>..\SqrWaveVoltammetry.c</FilePath>
             </File>
             <File>
-              <FileName>cJSON.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\cjson\cJSON.h</FilePath>
-            </File>
-            <File>
               <FileName>Temperature.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Temperature.c</FilePath>
@@ -564,7 +559,7 @@
         <package license="doc\license.txt" name="Jansson" schemaVersion="1.0" url="http://www.keil.com/pack/" vendor="Keil" version="1.0.0"/>
         <targetInfos/>
       </file>
-      <file attr="config" category="header" condition="ADuCM355" name="ADuCM355\inc\adi_config.h" version="0.0.0">
+      <file attr="config" category="header" condition="ADuCM355" name="ADuCM355\inc\adi_config.h" version="0.9.4">
         <instance index="0">RTE\Device\ADuCM355\adi_config.h</instance>
         <component Cclass="Device" Cgroup="Startup" Cvendor="Analog Devices" Cversion="0.9.4" condition="ADuCM355 CMSIS Device"/>
         <package name="ADuCM355_DFP" schemaVersion="1.2" url="http://download.analog.com/tools/EZBoards/ADuCM355/Releases/" vendor="AnalogDevices" version="1.0.3"/>
@@ -572,7 +567,7 @@
           <targetInfo name="ADuCM355"/>
         </targetInfos>
       </file>
-      <file attr="config" category="source" condition="ADuCM355_ARM" name="ADuCM355\common\ARM\startup_ADuCM355.s" version="0.0.0">
+      <file attr="config" category="source" condition="ADuCM355_ARM" name="ADuCM355\common\ARM\startup_ADuCM355.s" version="0.9.4">
         <instance index="0">RTE\Device\ADuCM355\startup_ADuCM355.s</instance>
         <component Cclass="Device" Cgroup="Startup" Cvendor="Analog Devices" Cversion="0.9.4" condition="ADuCM355 CMSIS Device"/>
         <package name="ADuCM355_DFP" schemaVersion="1.2" url="http://download.analog.com/tools/EZBoards/ADuCM355/Releases/" vendor="AnalogDevices" version="1.0.3"/>
@@ -580,7 +575,7 @@
           <targetInfo name="ADuCM355"/>
         </targetInfos>
       </file>
-      <file attr="config" category="source" condition="ADuCM355" name="ADuCM355\common\system_ADuCM355.c" version="0.0.0">
+      <file attr="config" category="source" condition="ADuCM355" name="ADuCM355\common\system_ADuCM355.c" version="0.9.4">
         <instance index="0">RTE\Device\ADuCM355\system_ADuCM355.c</instance>
         <component Cclass="Device" Cgroup="Startup" Cvendor="Analog Devices" Cversion="0.9.4" condition="ADuCM355 CMSIS Device"/>
         <package name="ADuCM355_DFP" schemaVersion="1.2" url="http://download.analog.com/tools/EZBoards/ADuCM355/Releases/" vendor="AnalogDevices" version="1.0.3"/>
@@ -594,7 +589,7 @@
   <LayerInfo>
     <Layers>
       <Layer>
-        <LayName>&lt;Project Info&gt;</LayName>
+        <LayName>M355_SqrWaveVoltammetry</LayName>
         <LayTarg>0</LayTarg>
         <LayPrjMark>1</LayPrjMark>
       </Layer>

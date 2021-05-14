@@ -180,10 +180,12 @@ static AppSWVCfg_Type AppSWVCfg =
   .Frequency = 25,              /* Frequency in Hz */
   .SqrWvAmplitude = 25,         /* Square wave amplitude in mV */
   .SqrWvRampIncrement = 5,      /* Ramp increment in mV*/
-	/* Channel Settings */
-	.LPAMP = LPAMP0,							/* LPAMP0 for channel 0, LPAMP1 for channel 1	*/
-	.LPDAC = LPDAC0,							/* LPDAC0 for channel 0, LPDAC1 for channel 1	*/
-	.REG_AFE_LPDACDAT = REG_AFE_LPDACDAT0,		/* REG_AFE_LPDACDAT0 for channel 0, REG_AFE_LPDACDAT1 for channel 1	*/
+
+	// /* Channel Settings */
+  // comment out (Hui)
+	// .LPAMP = LPAMP0,							/* LPAMP0 for channel 0, LPAMP1 for channel 1	*/
+	// .LPDAC = LPDAC0,							/* LPDAC0 for channel 0, LPDAC1 for channel 1	*/
+	// .REG_AFE_LPDACDAT = REG_AFE_LPDACDAT0,		/* REG_AFE_LPDACDAT0 for channel 0, REG_AFE_LPDACDAT1 for channel 1	*/
 	
 	
 };
@@ -313,7 +315,9 @@ static AD5940Err AppSWVSeqInitGen(void)
   aferef_cfg.LpRefBoostEn = bFALSE;
   AD5940_REFCfgS(&aferef_cfg);
   
-  lploop_cfg.LpAmpCfg.LpAmpSel = AppSWVCfg.LPAMP;
+  // lploop_cfg.LpAmpCfg.LpAmpSel = AppSWVCfg.LPAMP;
+  // comment out (Hui)
+  lploop_cfg.LpAmpCfg.LpAmpSel = LPAMP0;
   lploop_cfg.LpAmpCfg.LpAmpPwrMod = LPAMPPWR_NORM;
   lploop_cfg.LpAmpCfg.LpPaPwrEn = bTRUE;
   lploop_cfg.LpAmpCfg.LpTiaPwrEn = bTRUE;
@@ -324,23 +328,28 @@ static AD5940Err AppSWVSeqInitGen(void)
     lploop_cfg.LpAmpCfg.LpTiaSW = /*LPTIASW(13)|*/LPTIASW(2)|LPTIASW(4)|LPTIASW(5)|LPTIASW(9)/*|LPTIASW(10)*/; /* SW5/9 is closed to support external RTIA resistor */
   else
     lploop_cfg.LpAmpCfg.LpTiaSW = /*LPTIASW(13)|*/LPTIASW(2)|LPTIASW(4);
-  lploop_cfg.LpDacCfg.LpdacSel = AppSWVCfg.LPDAC;
+  // lploop_cfg.LpDacCfg.LpdacSel = AppSWVCfg.LPDAC;
+  // comment out (Hui)
+  lploop_cfg.LpDacCfg.LpdacSel = LPDAC0;
   lploop_cfg.LpDacCfg.DacData12Bit = 0x800;
   lploop_cfg.LpDacCfg.DacData6Bit = 0;
   lploop_cfg.LpDacCfg.DataRst = bFALSE;
   lploop_cfg.LpDacCfg.LpDacSW = LPDACSW_VBIAS2LPPA/*|LPDACSW_VBIAS2PIN*/|LPDACSW_VZERO2LPTIA/*|LPDACSW_VZERO2PIN*/;
   lploop_cfg.LpDacCfg.LpDacRef = LPDACREF_2P5;
   lploop_cfg.LpDacCfg.LpDacSrc = LPDACSRC_MMR;
-  //lploop_cfg.LpDacCfg.LpDacVbiasMux = LPDACVBIAS_12BIT; /* Step Vbias. Use 12bit DAC ouput */
-  //lploop_cfg.LpDacCfg.LpDacVzeroMux = LPDACVZERO_6BIT;  /* Base is Vzero. Use 6 bit DAC ouput */
-  lploop_cfg.LpDacCfg.DacData6Bit = (uint32_t)((AppSWVCfg.VzeroStart-200)/DAC6BITVOLT_1LSB);
-	lploop_cfg.LpDacCfg.DacData12Bit = (int32_t)((AppSWVCfg.RampStartVolt)/DAC12BITVOLT_1LSB) + lploop_cfg.LpDacCfg.DacData6Bit*64;
+  lploop_cfg.LpDacCfg.LpDacVbiasMux = LPDACVBIAS_12BIT; /* Step Vbias. Use 12bit DAC ouput */
+  lploop_cfg.LpDacCfg.LpDacVzeroMux = LPDACVZERO_6BIT;  /* Base is Vzero. Use 6 bit DAC ouput */
+  //lploop_cfg.LpDacCfg.DacData6Bit = (uint32_t)((AppSWVCfg.VzeroStart-200)/DAC6BITVOLT_1LSB);
+	//lploop_cfg.LpDacCfg.DacData12Bit = (int32_t)((AppSWVCfg.RampStartVolt)/DAC12BITVOLT_1LSB) + lploop_cfg.LpDacCfg.DacData6Bit*64;
 	lploop_cfg.LpDacCfg.PowerEn = bTRUE;
   AD5940_LPLoopCfgS(&lploop_cfg);
   
   AD5940_StructInit(&dsp_cfg, sizeof(dsp_cfg));
-  dsp_cfg.ADCBaseCfg.ADCMuxN = AppSWVCfg.adcMuxN;
-  dsp_cfg.ADCBaseCfg.ADCMuxP = AppSWVCfg.adcMuxP;
+  // comment out (Hui)
+  // dsp_cfg.ADCBaseCfg.ADCMuxN = AppSWVCfg.adcMuxN;
+  // dsp_cfg.ADCBaseCfg.ADCMuxP = AppSWVCfg.adcMuxP;
+  dsp_cfg.ADCBaseCfg.ADCMuxN = ADCMUXN_LPTIA0_N;
+  dsp_cfg.ADCBaseCfg.ADCMuxP = ADCMUXP_LPTIA0_P;
   dsp_cfg.ADCBaseCfg.ADCPga = AppSWVCfg.AdcPgaGain;
   
   dsp_cfg.ADCFilterCfg.ADCSinc3Osr = AppSWVCfg.ADCSinc3Osr;
@@ -575,7 +584,9 @@ static AD5940Err AppSWVSeqDACCtrlGen(void)
     uint32_t CurrAddr = SRAMAddr;
     SRAMAddr += SEQLEN_ONESTEP;  /* Jump to next sequence */
     RampDacRegUpdate(&DACData);
-    SeqCmdBuff[0] = SEQ_WR(AppSWVCfg.REG_AFE_LPDACDAT, DACData);
+    SeqCmdBuff[0] = SEQ_WR(REG_AFE_LPDACDAT0, DACData);
+    // comment out (Hui)
+    // SeqCmdBuff[0] = SEQ_WR(AppSWVCfg.REG_AFE_LPDACDAT, DACData);
     SeqCmdBuff[1] = SEQ_WAIT(10); /* !!!NOTE LPDAC need 10 clocks to update data. Before send AFE to sleep state, wait 10 extra clocks */
     SeqCmdBuff[2] = SEQ_WR(bCmdForSeq0?REG_AFE_SEQ1INFO:REG_AFE_SEQ0INFO,\
                             (SRAMAddr<<BITP_AFE_SEQ1INFO_ADDR)|(SEQLEN_ONESTEP<<BITP_AFE_SEQ1INFO_LEN));
@@ -590,7 +601,9 @@ static AD5940Err AppSWVSeqDACCtrlGen(void)
     SRAMAddr += SEQLEN_ONESTEP;  /* Jump to next sequence */
     /* After update LPDAC with final data, we let sequencer to run 'final final' command, to disable sequencer.  */
     RampDacRegUpdate(&DACData);
-    SeqCmdBuff[0] = SEQ_WR(AppSWVCfg.REG_AFE_LPDACDAT, DACData);
+    SeqCmdBuff[0] = SEQ_WR(REG_AFE_LPDACDAT0, DACData);
+    // comment out (hui)
+    //SeqCmdBuff[0] = SEQ_WR(AppSWVCfg.REG_AFE_LPDACDAT, DACData);
     SeqCmdBuff[1] = SEQ_WAIT(10); /* !!!NOTE LPDAC need 10 clocks to update data. Before send AFE to sleep state, wait 10 extra clocks */
     SeqCmdBuff[2] = SEQ_WR(bCmdForSeq0?REG_AFE_SEQ1INFO:REG_AFE_SEQ0INFO,\
                             (SRAMAddr<<BITP_AFE_SEQ1INFO_ADDR)|(SEQLEN_ONESTEP<<BITP_AFE_SEQ1INFO_LEN));
@@ -612,7 +625,9 @@ static AD5940Err AppSWVSeqDACCtrlGen(void)
     SRAMAddr = (DACSeqCurrBlk == CURRBLK_BLK0)?\
               DACSeqBlk1Addr:DACSeqBlk0Addr;
     RampDacRegUpdate(&DACData);          
-    SeqCmdBuff[0] = SEQ_WR(AppSWVCfg.REG_AFE_LPDACDAT, DACData);
+    SeqCmdBuff[0] = SEQ_WR(REG_AFE_LPDACDAT0, DACData);
+    // comment out (Hui)
+    // SeqCmdBuff[0] = SEQ_WR(AppSWVCfg.REG_AFE_LPDACDAT, DACData);
     SeqCmdBuff[1] = SEQ_WAIT(10);
     SeqCmdBuff[2] = SEQ_WR(bCmdForSeq0?REG_AFE_SEQ1INFO:REG_AFE_SEQ0INFO, 
                             (SRAMAddr<<BITP_AFE_SEQ1INFO_ADDR)|(SEQLEN_ONESTEP<<BITP_AFE_SEQ1INFO_LEN));
@@ -653,8 +668,10 @@ static AD5940Err AppSWVRtiaCal(void)
   fImpPol_Type RtiaCalValue;  /* Calibration result */
   LPRTIACal_Type lprtia_cal;
   AD5940_StructInit(&lprtia_cal, sizeof(lprtia_cal));
-
-  lprtia_cal.LpAmpSel = AppSWVCfg.LPAMP;
+  
+  lprtia_cal.LpAmpSel = LPAMP0;
+  // comment out (hui)
+  // lprtia_cal.LpAmpSel = AppSWVCfg.LPAMP;
   lprtia_cal.bPolarResult = bTRUE;                /* Magnitude + Phase */
   lprtia_cal.AdcClkFreq = AppSWVCfg.AdcClkFreq;
   lprtia_cal.SysClkFreq = AppSWVCfg.SysClkFreq;

@@ -505,6 +505,7 @@ void AD5940_Main(void)
 				
 				temp = cJSON_GetObjectItemCaseSensitive(json, "channel");
 				float channel = temp ? (int) (temp->valuedouble) : UNDEFINED;
+				
 				/* Pretreatment doesn't work yet */
 				//float vPretreatment = cJSON_GetObjectItemCaseSensitive(json, "vPretreatment")->valuedouble * vFactor;
 				//float secsPretreatment = cJSON_GetObjectItemCaseSensitive(json, "secsPretreatment")->valuedouble;
@@ -514,6 +515,7 @@ void AD5940_Main(void)
 				
 				AD5940_TemperatureInit();
 				AD5940_WUPTCtrl(bTRUE);
+				
 				while(1){
 				 /* Check if interrupt flag which will be set when interrupt occured. */
 					if(AD5940_GetMCUIntFlag()){
@@ -531,10 +533,13 @@ void AD5940_Main(void)
 					setSelectPins((uint8_t) muxSelect);
 					//printf("{\"setMuxSelect\":%d}*",muxSelect);
 				}
-				
+			
 				AD5940RampStructInit(vStart,vEnd,vIncrement,vAmplitude,frequency,maxCurrent,channel); // Initialize the SWV values
+				
 				AppSWVInit(AppBuff, APPBUFF_SIZE);    /* Initialize RAMP application. Provide a buffer, which is used to store sequencer commands */
+				
 				AppSWVCtrl(APPCTRL_START, 0);          /* Control IMP measurement to start. Second parameter has no meaning with this command. */
+				
 			}
 			cJSON_Delete(json);
 		}

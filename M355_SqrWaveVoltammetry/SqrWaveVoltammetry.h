@@ -70,11 +70,12 @@ typedef struct
   float     floor;
   BoolFlag  StopRequired;         /**< After FIFO is ready, stop the measurment sequence */
   enum _RampState{SWV_STATE0 = 0, SWV_STATE1, SWV_STATE2, SWV_STOP} RampState;
-	uint8_t LPAMP;
-	uint8_t LPDAC;
-	uint16_t REG_AFE_LPDACDAT;
-	uint8_t adcMuxN;
-	uint8_t adcMuxP;
+  // comment out (hui)
+	// uint8_t LPAMP;
+	// uint8_t LPDAC;
+	// uint16_t REG_AFE_LPDACDAT;
+	// uint8_t adcMuxN;
+	// uint8_t adcMuxP;
 }AppSWVCfg_Type;
 
 #define APPCTRL_START          0

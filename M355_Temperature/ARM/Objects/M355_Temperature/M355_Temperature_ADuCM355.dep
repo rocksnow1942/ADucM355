@@ -1,161 +1,0 @@
-Dependencies for Project 'M355_Temperature', Target 'ADuCM355': (DO NOT MODIFY !)
-CompilerVersion: 5060750::V5.06 update 6 (build 750)::.\ARMCC
-F (..\AD5940_Temperature.c)(0x5F5979C5)(--c99 -c --cpu Cortex-M3 -D__EVAL -g -O0 --apcs=interwork --split_sections-I.\RTE\Device\ADuCM355-I.\RTE\_ADuCM355-IC:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include-IC:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common-IC:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common\ad5940lib-IC:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc-D__UVISION_VERSION="531" -D_RTE_ -D_RTE_ -DCHIPSEL_M355-o .\objects\m355_temperature\ad5940_temperature.o --omf_browse .\objects\m355_temperature\ad5940_temperature.crf --depend .\objects\m355_temperature\ad5940_temperature.d)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common\ad5940lib\ad5940.h)(0x5E2204D8)
-I (C:\Keil_v5\ARM\ARMCC\include\math.h)(0x5EC848F4)
-I (C:\Keil_v5\ARM\ARMCC\include\string.h)(0x5EC848F4)
-I (C:\Keil_v5\ARM\ARMCC\include\stdio.h)(0x5F4FEF84)
-I (C:\Keil_v5\ARM\ARMCC\include\stdint.h)(0x5F4FED36)
-F (..\main.c)(0x5F59698A)(--c99 -c --cpu Cortex-M3 -D__EVAL -g -O0 --apcs=interwork --split_sections-I.\RTE\Device\ADuCM355-I.\RTE\_ADuCM355-IC:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include-IC:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common-IC:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common\ad5940lib-IC:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc-D__UVISION_VERSION="531" -D_RTE_ -D_RTE_ -DCHIPSEL_M355-o .\objects\m355_temperature\main.o --omf_browse .\objects\m355_temperature\main.crf --depend .\objects\m355_temperature\main.d)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common\UrtLib.h)(0x5E2204C6)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355.h)(0x5E2204C8)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355_cdef.h)(0x5E2204C8)
-I (C:\Keil_v5\ARM\ARMCC\include\stdint.h)(0x5F4FED36)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355_device.h)(0x5E2204C8)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355_typedefs.h)(0x5E2204C8)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355_bitm.h)(0x5E2204C8)
-I (C:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include\core_cm3.h)(0x5E8FA412)
-I (C:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include\cmsis_version.h)(0x5E8FA412)
-I (C:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include\cmsis_compiler.h)(0x5E83D9B2)
-I (C:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include\cmsis_armcc.h)(0x5E8FA412)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common\ClkLib.h)(0x5E2204C6)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common\DioLib.h)(0x5E2204C6)
-I (C:\Keil_v5\ARM\ARMCC\include\stdio.h)(0x5F4FEF84)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common\ad5940lib\ad5940.h)(0x5E2204D8)
-I (C:\Keil_v5\ARM\ARMCC\include\math.h)(0x5EC848F4)
-I (C:\Keil_v5\ARM\ARMCC\include\string.h)(0x5EC848F4)
-F (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common\ADuCM355Port.c)(0x5E2204C6)(--c99 -c --cpu Cortex-M3 -D__EVAL -g -O0 --apcs=interwork --split_sections-I.\RTE\Device\ADuCM355-I.\RTE\_ADuCM355-IC:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include-IC:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common-IC:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common\ad5940lib-IC:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc-D__UVISION_VERSION="531" -D_RTE_ -D_RTE_ -DCHIPSEL_M355-o .\objects\m355_temperature\aducm355port.o --omf_browse .\objects\m355_temperature\aducm355port.crf --depend .\objects\m355_temperature\aducm355port.d)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common\ad5940lib\ad5940.h)(0x5E2204D8)
-I (C:\Keil_v5\ARM\ARMCC\include\math.h)(0x5EC848F4)
-I (C:\Keil_v5\ARM\ARMCC\include\string.h)(0x5EC848F4)
-I (C:\Keil_v5\ARM\ARMCC\include\stdio.h)(0x5F4FEF84)
-I (C:\Keil_v5\ARM\ARMCC\include\stdint.h)(0x5F4FED36)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common\DioLib.h)(0x5E2204C6)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355.h)(0x5E2204C8)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355_cdef.h)(0x5E2204C8)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355_device.h)(0x5E2204C8)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355_typedefs.h)(0x5E2204C8)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355_bitm.h)(0x5E2204C8)
-I (C:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include\core_cm3.h)(0x5E8FA412)
-I (C:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include\cmsis_version.h)(0x5E8FA412)
-I (C:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include\cmsis_compiler.h)(0x5E83D9B2)
-I (C:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include\cmsis_armcc.h)(0x5E8FA412)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common\IntLib.h)(0x5E2204C6)
-F (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common\ARM\retarget.c)(0x5E2204C6)(--c99 -c --cpu Cortex-M3 -D__EVAL -g -O0 --apcs=interwork --split_sections-I.\RTE\Device\ADuCM355-I.\RTE\_ADuCM355-IC:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include-IC:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common-IC:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common\ad5940lib-IC:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc-D__UVISION_VERSION="531" -D_RTE_ -D_RTE_ -DCHIPSEL_M355-o .\objects\m355_temperature\retarget.o --omf_browse .\objects\m355_temperature\retarget.crf --depend .\objects\m355_temperature\retarget.d)
-I (C:\Keil_v5\ARM\ARMCC\include\stdio.h)(0x5F4FEF84)
-I (C:\Keil_v5\ARM\ARMCC\include\rt_misc.h)(0x5EC848E2)
-I (C:\Keil_v5\ARM\ARMCC\include\stddef.h)(0x5EC848EC)
-I (C:\Keil_v5\ARM\ARMCC\include\stdint.h)(0x5F4FED36)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common\UrtLib.h)(0x5E2204C6)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355.h)(0x5E2204C8)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355_cdef.h)(0x5E2204C8)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355_device.h)(0x5E2204C8)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355_typedefs.h)(0x5E2204C8)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355_bitm.h)(0x5E2204C8)
-I (C:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include\core_cm3.h)(0x5E8FA412)
-I (C:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include\cmsis_version.h)(0x5E8FA412)
-I (C:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include\cmsis_compiler.h)(0x5E83D9B2)
-I (C:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include\cmsis_armcc.h)(0x5E8FA412)
-F (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common\ClkLib.c)(0x5E2204C6)(--c99 -c --cpu Cortex-M3 -D__EVAL -g -O0 --apcs=interwork --split_sections-I.\RTE\Device\ADuCM355-I.\RTE\_ADuCM355-IC:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include-IC:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common-IC:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common\ad5940lib-IC:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc-D__UVISION_VERSION="531" -D_RTE_ -D_RTE_ -DCHIPSEL_M355-o .\objects\m355_temperature\clklib.o --omf_browse .\objects\m355_temperature\clklib.crf --depend .\objects\m355_temperature\clklib.d)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common\ClkLib.h)(0x5E2204C6)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355.h)(0x5E2204C8)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355_cdef.h)(0x5E2204C8)
-I (C:\Keil_v5\ARM\ARMCC\include\stdint.h)(0x5F4FED36)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355_device.h)(0x5E2204C8)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355_typedefs.h)(0x5E2204C8)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355_bitm.h)(0x5E2204C8)
-I (C:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include\core_cm3.h)(0x5E8FA412)
-I (C:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include\cmsis_version.h)(0x5E8FA412)
-I (C:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include\cmsis_compiler.h)(0x5E83D9B2)
-I (C:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include\cmsis_armcc.h)(0x5E8FA412)
-F (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common\DioLib.c)(0x5E2204C6)(--c99 -c --cpu Cortex-M3 -D__EVAL -g -O0 --apcs=interwork --split_sections-I.\RTE\Device\ADuCM355-I.\RTE\_ADuCM355-IC:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include-IC:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common-IC:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common\ad5940lib-IC:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc-D__UVISION_VERSION="531" -D_RTE_ -D_RTE_ -DCHIPSEL_M355-o .\objects\m355_temperature\diolib.o --omf_browse .\objects\m355_temperature\diolib.crf --depend .\objects\m355_temperature\diolib.d)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common\DioLib.h)(0x5E2204C6)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355.h)(0x5E2204C8)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355_cdef.h)(0x5E2204C8)
-I (C:\Keil_v5\ARM\ARMCC\include\stdint.h)(0x5F4FED36)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355_device.h)(0x5E2204C8)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355_typedefs.h)(0x5E2204C8)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355_bitm.h)(0x5E2204C8)
-I (C:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include\core_cm3.h)(0x5E8FA412)
-I (C:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include\cmsis_version.h)(0x5E8FA412)
-I (C:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include\cmsis_compiler.h)(0x5E83D9B2)
-I (C:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include\cmsis_armcc.h)(0x5E8FA412)
-F (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common\GptLib.c)(0x5E2204C6)(--c99 -c --cpu Cortex-M3 -D__EVAL -g -O0 --apcs=interwork --split_sections-I.\RTE\Device\ADuCM355-I.\RTE\_ADuCM355-IC:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include-IC:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common-IC:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common\ad5940lib-IC:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc-D__UVISION_VERSION="531" -D_RTE_ -D_RTE_ -DCHIPSEL_M355-o .\objects\m355_temperature\gptlib.o --omf_browse .\objects\m355_temperature\gptlib.crf --depend .\objects\m355_temperature\gptlib.d)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common\GptLib.h)(0x5E2204C6)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355.h)(0x5E2204C8)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355_cdef.h)(0x5E2204C8)
-I (C:\Keil_v5\ARM\ARMCC\include\stdint.h)(0x5F4FED36)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355_device.h)(0x5E2204C8)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355_typedefs.h)(0x5E2204C8)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355_bitm.h)(0x5E2204C8)
-I (C:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include\core_cm3.h)(0x5E8FA412)
-I (C:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include\cmsis_version.h)(0x5E8FA412)
-I (C:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include\cmsis_compiler.h)(0x5E83D9B2)
-I (C:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include\cmsis_armcc.h)(0x5E8FA412)
-F (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common\IntLib.c)(0x5E2204C6)(--c99 -c --cpu Cortex-M3 -D__EVAL -g -O0 --apcs=interwork --split_sections-I.\RTE\Device\ADuCM355-I.\RTE\_ADuCM355-IC:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include-IC:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common-IC:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common\ad5940lib-IC:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc-D__UVISION_VERSION="531" -D_RTE_ -D_RTE_ -DCHIPSEL_M355-o .\objects\m355_temperature\intlib.o --omf_browse .\objects\m355_temperature\intlib.crf --depend .\objects\m355_temperature\intlib.d)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common\IntLib.h)(0x5E2204C6)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355.h)(0x5E2204C8)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355_cdef.h)(0x5E2204C8)
-I (C:\Keil_v5\ARM\ARMCC\include\stdint.h)(0x5F4FED36)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355_device.h)(0x5E2204C8)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355_typedefs.h)(0x5E2204C8)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355_bitm.h)(0x5E2204C8)
-I (C:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include\core_cm3.h)(0x5E8FA412)
-I (C:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include\cmsis_version.h)(0x5E8FA412)
-I (C:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include\cmsis_compiler.h)(0x5E83D9B2)
-I (C:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include\cmsis_armcc.h)(0x5E8FA412)
-F (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common\PwrLib.c)(0x5E2204C6)(--c99 -c --cpu Cortex-M3 -D__EVAL -g -O0 --apcs=interwork --split_sections-I.\RTE\Device\ADuCM355-I.\RTE\_ADuCM355-IC:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include-IC:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common-IC:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common\ad5940lib-IC:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc-D__UVISION_VERSION="531" -D_RTE_ -D_RTE_ -DCHIPSEL_M355-o .\objects\m355_temperature\pwrlib.o --omf_browse .\objects\m355_temperature\pwrlib.crf --depend .\objects\m355_temperature\pwrlib.d)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common\PwrLib.h)(0x5E2204C6)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355.h)(0x5E2204C8)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355_cdef.h)(0x5E2204C8)
-I (C:\Keil_v5\ARM\ARMCC\include\stdint.h)(0x5F4FED36)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355_device.h)(0x5E2204C8)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355_typedefs.h)(0x5E2204C8)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355_bitm.h)(0x5E2204C8)
-I (C:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include\core_cm3.h)(0x5E8FA412)
-I (C:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include\cmsis_version.h)(0x5E8FA412)
-I (C:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include\cmsis_compiler.h)(0x5E83D9B2)
-I (C:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include\cmsis_armcc.h)(0x5E8FA412)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\adi_types.h)(0x5E2204C8)
-I (C:\Keil_v5\ARM\ARMCC\include\stdbool.h)(0x5EC848E6)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common\ad5940lib\AD5940.h)(0x5E2204D8)
-I (C:\Keil_v5\ARM\ARMCC\include\math.h)(0x5EC848F4)
-I (C:\Keil_v5\ARM\ARMCC\include\string.h)(0x5EC848F4)
-I (C:\Keil_v5\ARM\ARMCC\include\stdio.h)(0x5F4FEF84)
-F (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common\UrtLib.c)(0x5E2204C6)(--c99 -c --cpu Cortex-M3 -D__EVAL -g -O0 --apcs=interwork --split_sections-I.\RTE\Device\ADuCM355-I.\RTE\_ADuCM355-IC:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include-IC:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common-IC:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common\ad5940lib-IC:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc-D__UVISION_VERSION="531" -D_RTE_ -D_RTE_ -DCHIPSEL_M355-o .\objects\m355_temperature\urtlib.o --omf_browse .\objects\m355_temperature\urtlib.crf --depend .\objects\m355_temperature\urtlib.d)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common\UrtLib.h)(0x5E2204C6)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355.h)(0x5E2204C8)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355_cdef.h)(0x5E2204C8)
-I (C:\Keil_v5\ARM\ARMCC\include\stdint.h)(0x5F4FED36)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355_device.h)(0x5E2204C8)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355_typedefs.h)(0x5E2204C8)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355_bitm.h)(0x5E2204C8)
-I (C:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include\core_cm3.h)(0x5E8FA412)
-I (C:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include\cmsis_version.h)(0x5E8FA412)
-I (C:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include\cmsis_compiler.h)(0x5E83D9B2)
-I (C:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include\cmsis_armcc.h)(0x5E8FA412)
-F (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common\ad5940lib\ad5940.c)(0x5F21CA8A)(--c99 -c --cpu Cortex-M3 -D__EVAL -g -O0 --apcs=interwork --split_sections-I.\RTE\Device\ADuCM355-I.\RTE\_ADuCM355-IC:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include-IC:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common-IC:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common\ad5940lib-IC:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc-D__UVISION_VERSION="531" -D_RTE_ -D_RTE_ -DCHIPSEL_M355-o .\objects\m355_temperature\ad5940.o --omf_browse .\objects\m355_temperature\ad5940.crf --depend .\objects\m355_temperature\ad5940.d)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common\ad5940lib\ad5940.h)(0x5E2204D8)
-I (C:\Keil_v5\ARM\ARMCC\include\math.h)(0x5EC848F4)
-I (C:\Keil_v5\ARM\ARMCC\include\string.h)(0x5EC848F4)
-I (C:\Keil_v5\ARM\ARMCC\include\stdio.h)(0x5F4FEF84)
-I (C:\Keil_v5\ARM\ARMCC\include\stdint.h)(0x5F4FED36)
-F (RTE\Device\ADuCM355\adi_config.h)(0x5E2204C8)()
-F (RTE\Device\ADuCM355\startup_ADuCM355.s)(0x5E2204C6)(--cpu Cortex-M3 --pd "__EVAL SETA 1" -g --apcs=interwork -I.\RTE\Device\ADuCM355-I.\RTE\_ADuCM355-IC:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include-IC:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common-IC:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common\ad5940lib-IC:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc--cpreproc --cpreproc_opts=-U__STDC__,-D__ASSEMBLER__ --pd "__UVISION_VERSION SETA 531" --pd "_RTE_ SETA 1" --pd "_RTE_ SETA 1"--list .\listings\startup_aducm355.lst --xref -o .\objects\m355_temperature\startup_aducm355.o --depend .\objects\m355_temperature\startup_aducm355.d)
-F (RTE\Device\ADuCM355\system_ADuCM355.c)(0x5E2204C6)(--c99 -c --cpu Cortex-M3 -D__EVAL -g -O0 --apcs=interwork --split_sections-I.\RTE\Device\ADuCM355-I.\RTE\_ADuCM355-IC:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include-IC:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common-IC:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\common\ad5940lib-IC:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc-D__UVISION_VERSION="531" -D_RTE_ -D_RTE_ -DCHIPSEL_M355-o .\objects\m355_temperature\system_aducm355.o --omf_browse .\objects\m355_temperature\system_aducm355.crf --depend .\objects\m355_temperature\system_aducm355.d)
-I (C:\Keil_v5\ARM\ARMCC\include\stdint.h)(0x5F4FED36)
-I (RTE\Device\ADuCM355\adi_config.h)(0x5E2204C8)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\system_ADuCM355.h)(0x5E2204C8)
-I (C:\Keil_v5\ARM\ARMCC\include\stddef.h)(0x5EC848EC)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\adi_types.h)(0x5E2204C8)
-I (C:\Keil_v5\ARM\ARMCC\include\stdbool.h)(0x5EC848E6)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355.h)(0x5E2204C8)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355_cdef.h)(0x5E2204C8)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355_device.h)(0x5E2204C8)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355_typedefs.h)(0x5E2204C8)
-I (C:\Users\trent\AppData\Local\Arm\Packs\AnalogDevices\ADuCM355_DFP\1.0.3\ADuCM355\inc\ADuCM355_bitm.h)(0x5E2204C8)
-I (C:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include\core_cm3.h)(0x5E8FA412)
-I (C:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include\cmsis_version.h)(0x5E8FA412)
-I (C:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include\cmsis_compiler.h)(0x5E83D9B2)
-I (C:\Users\trent\AppData\Local\Arm\Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include\cmsis_armcc.h)(0x5E8FA412)
-I (.\RTE\Device\ADuCM355\adi_config.h)(0x5E2204C8)
