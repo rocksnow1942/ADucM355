@@ -8,7 +8,7 @@ import numpy as np
 import time
 import sys
 from serial.tools import list_ports
-
+ 
 
 def findComPort():
     """

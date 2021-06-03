@@ -66,8 +66,8 @@ print(m.json({'status':0},0.1))
 
 para=dict(
 vScale=1e-3, #mV
-vStart=-600,
-vEnd=0,
+vStart=-800,
+vEnd=-200,
 vIncrement=5,
 vAmplitude=200,
 freqHz=100,
@@ -95,7 +95,10 @@ fig,ax = plt.subplots()
 ax.plot(v,f,label='forward')
 ax.plot(v,r,label='reverse')
 ax.plot(v,c,label='delta')
+ax.set_ylim([-30,30])
 ax.legend()
+
+plt.savefig('./355out.png')
 
 m.close()
 

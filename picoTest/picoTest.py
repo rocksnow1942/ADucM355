@@ -18,10 +18,16 @@ if not port:
     print('Pico is not connected!')
     exit(0)
 
+
+
 pico = Pico(port=port)
 pico.initialize()
 
+
+
+
 print(f"Pico is connected ? {pico.isConnected}" )
+
 
 sc = """e
 var c
@@ -34,9 +40,7 @@ set_max_bandwidth 400
 set_pot_range -600m 0m
 set_autoranging 100u 100u
 cell_on
-set_e -600m
-wait 200m
-meas_loop_swv p c f r -600m 0m 50m 50m 100
+meas_loop_swv p c f r -600m 0m 2m 50m 100
 	pck_start
 	pck_add p
 	pck_add c
@@ -50,6 +54,7 @@ cell_off
 """
 
 res = pico.runScript(sc,parseValue=True)
+
 pico.close()
 
 p = np.array([i[0] for i in res[1][0]])
@@ -65,5 +70,7 @@ ax.plot(p,c,'-',label='Delta Current')
 ax.legend()
 ax.set_ylabel('Current / uA')
 ax.set_xlabel('Voltage / V')
-plt.show()
+# plt.show()
+
+plt.savefig('./test.png')
 
