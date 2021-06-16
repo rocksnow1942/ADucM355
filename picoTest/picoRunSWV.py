@@ -42,6 +42,7 @@ def IsConnected(ser):
     If it is the same, then it is connected correctly.
     """
     ser.write(bytes("t\n",  'ascii'))  # write the command
+    time.sleep(0.1)
     response = ser.read_until(bytes("*\n", 'ascii'))  # read until *\n
     response = str(response, 'ascii')  # convert bytes to ascii string
     start = response.find('esp')  # check the presents of "esp" in the repsonse  
@@ -62,6 +63,7 @@ def findPico():
     #print(ports)
     for p in ports:
         ser = connectPico(p)
+        time.sleep(0.1)
         if ser and IsConnected(ser):
             return ser
     return None
@@ -104,6 +106,12 @@ cell_off
 
 
 
+"""
+To Fermi:
+You can change the interval and count to different numbers,
+so that it suits your need for your experiment.
+"""
+
 
 if ser: # here checks for if the pico is connected.
     print(f'Connected to Pico on {ser.port}')
@@ -111,10 +119,10 @@ if ser: # here checks for if the pico is connected.
     # continuously issue SWV comment to Pico
     # set the interval to 3 seconds, 
     # so that pico will do 1 SWV, then wait for 3 seconds for to do another SWV.
-    interval = 3 
+    interval = 3 # interval of the scan in seconds
 
     # it will repeat for [count] times.
-    count = 100
+    count = 100 # how many total scan it will repeat. You can set it to very large number so it will keep running.
 
 
     for i in range(count):
@@ -126,6 +134,7 @@ if ser: # here checks for if the pico is connected.
             time.sleep(0.5)
             res = ser.read_all()
         time.sleep(interval) # sleep for [interval] seconds
-        
+else:
+    print('Pico is not connected.')
             
         
