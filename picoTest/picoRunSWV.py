@@ -73,6 +73,27 @@ def findPico():
 ser = findPico()
 
 
+
+
+
+# Uncomment the following block to manually connect to the pico port:
+#============================================================================
+# ser = serial.Serial(
+#     port = "COM7",
+#     baudrate=230400, 
+#     bytesize=serial.EIGHTBITS, 
+#     parity=serial.PARITY_NONE,  
+#     stopbits=serial.STOPBITS_ONE, 
+#     timeout=1,  
+#     xonxoff=False, 
+#     rtscts=False,  
+#     dsrdtr=False,  
+#     write_timeout=2 )
+#============================================================================
+
+
+
+
 # script is a string to be written to the Pico via serial port.
 # this script issues the command to perform a SWV measurement.
 # the Vbias will be from -600mV to 0mV,
@@ -122,7 +143,7 @@ if ser: # here checks for if the pico is connected.
     interval = 3 # interval of the scan in seconds
 
     # it will repeat for [count] times.
-    count = 100 # how many total scan it will repeat. You can set it to very large number so it will keep running.
+    count = 10 # how many total scan it will repeat. You can set it to very large number so it will keep running.
 
 
     for i in range(count):
