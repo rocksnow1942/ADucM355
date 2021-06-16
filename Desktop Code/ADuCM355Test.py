@@ -62,6 +62,7 @@ m = M355(findComPort())
 # send status query, should respond with {status:1}
 print(m.json({'status':0},0.1))
 
+print(m.json({'version':0},0.1))
 
 
 para=dict(
@@ -95,14 +96,30 @@ fig,ax = plt.subplots()
 ax.plot(v,f,label='forward')
 ax.plot(v,r,label='reverse')
 ax.plot(v,c,label='delta')
-ax.set_ylim([-30,30])
+# ax.set_ylim([-30,30])
 ax.legend()
 
-plt.savefig('./355out.png')
+# plt.savefig('./355out.png')
 
 m.close()
 
 
+
+
+res = m.json(para)
+
+f = np.array( res['forwardCurrent'])
+r = np.array(res['reverseCurrent'])
+c = np.array(res['subtractCurrent'])
+
+v = np.linspace(-600,0,len(f))
+
+fig,ax = plt.subplots()
+ax.plot(v,f,label='forward')
+ax.plot(v,r,label='reverse')
+ax.plot(v,c,label='delta')
+# ax.set_ylim([-30,30])
+ax.legend()
 
 
 

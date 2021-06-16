@@ -457,6 +457,11 @@ void AD5940_Main(void)
 			temp = cJSON_GetObjectItemCaseSensitive(json, "chipInserted"); // expecting the string {"chipInserted":1}* as the check to see if the chip is connected, and will return the same json
 			int chipInserted = temp ? temp->valueint : UNDEFINED;
 			
+			temp = cJSON_GetObjectItemCaseSensitive(json, "version"); // expecting the string {"version":1}* as the check to return chip version
+			int version = temp ? temp->valueint : UNDEFINED;
+			
+			temp = cJSON_GetObjectItemCaseSensitive(json, "vScale");
+			float vScale = temp ? temp->valuedouble : UNDEFINED;
 			
 			if(status != UNDEFINED){
 				printf("{\"status\":1}*");
@@ -469,10 +474,11 @@ void AD5940_Main(void)
 					printf("{\"chipInserted\":0}*");
 				}
 			}
-			else{
-				
-				temp = cJSON_GetObjectItemCaseSensitive(json, "vScale");
-				float vScale = temp ? temp->valuedouble : UNDEFINED;
+			else if (version != UNDEFINED) {
+				printf("{\"version\":\"1.0.0\"}*");
+			}
+			else if (vScale != UNDEFINED) {
+	
 				float vFactor = vScale/.001; // turn everything into mV
 				
 				temp = cJSON_GetObjectItemCaseSensitive(json, "vStart");
