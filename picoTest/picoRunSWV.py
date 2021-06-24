@@ -143,7 +143,7 @@ if ser: # here checks for if the pico is connected.
     interval = 3 # interval of the scan in seconds
 
     # it will repeat for [count] times.
-    count = 10 # how many total scan it will repeat. You can set it to very large number so it will keep running.
+    count = 1000 # how many total scan it will repeat. You can set it to very large number so it will keep running.
 
 
     for i in range(count):
