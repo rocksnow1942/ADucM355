@@ -67,10 +67,10 @@ print(m.json({'version':0},0.1))
 
 para=dict(
 vScale=1e-3, #mV
-vStart=-800,
-vEnd=-200,
+vStart=-600,
+vEnd=0,
 vIncrement=5,
-vAmplitude=200,
+vAmplitude=100,
 freqHz=100,
 iScale=.000001, #uA
 maxCurrent=100, #uA
