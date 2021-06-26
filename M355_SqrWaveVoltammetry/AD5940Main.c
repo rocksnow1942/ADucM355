@@ -412,6 +412,10 @@ void UART_Int_Handler()
 	}
 }
 
+uint8_t firstCommandRecv = 0;
+uint8_t pinState =  0;
+uint8_t pinEnable =  0;
+int counter = 0;
 
 /**
 	* @brief Main code which waits for UART, scans temperature, runs SWV with UART JSON parameters, and then outputs the data
@@ -437,17 +441,49 @@ void AD5940_Main(void)
 			AppSWVISR(AppBuff, &temp);
 			uartPrint((float*)AppBuff, temp);
 		}
+
+		if (!firstCommandRecv) {
+			counter += 1;
+			if( counter % 200 == 0) 
+				{
+					setSelect0(pinState);
+					pinState ^=1;
+					counter = 0;
+				}			
+			delay(9999);
+		}
+		
+		
+		
 		if (stringReceived == 1) // any received string will rerun the code ... for now
-		{
+		{	
+			firstCommandRecv = 1;
 			stringReceived = 0;
 			
 			// Not sure why but the last character is getting cut off sometimes?? I think it's a UART processing issue
 			if(recvString[(strlen(recvString)-1)] != '}'){
 				strncat(recvString, "}", 1);
 			}
+			
 			cJSON *json = cJSON_Parse(recvString);
 			cJSON *temp;
 			strcpy(recvString, "");
+
+			temp = cJSON_GetObjectItemCaseSensitive(json, "led");
+			float led = temp ? temp->valuedouble : UNDEFINED;
+			if (led!=UNDEFINED) {
+				setSelect0(pinState);
+				pinState ^=1;
+			}
+
+			temp = cJSON_GetObjectItemCaseSensitive(json, "ledoff");
+			float ledoff = temp ? temp->valuedouble : UNDEFINED;
+			if (ledoff!=UNDEFINED) {
+				DioOenPin(pADI_GPIO1,PIN2,pinEnable);			// toggle enable disable pin
+				pinEnable ^=1;
+			}
+
+
 			
 			// Adding sanity checks for each key to make sure nothing breaks the code ... doing ternary because it's cool
 			// If any key is missing besides "status", then we will continue the while loop and not scan
@@ -547,6 +583,7 @@ void AD5940_Main(void)
 				AppSWVCtrl(APPCTRL_START, 0);          /* Control IMP measurement to start. Second parameter has no meaning with this command. */
 				
 			}
+			
 			cJSON_Delete(json);
 		}
 	}
