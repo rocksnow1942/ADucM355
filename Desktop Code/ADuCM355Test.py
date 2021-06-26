@@ -59,6 +59,12 @@ class M355:
 m = M355(findComPort())
 
 
+m.write('test2*')
+
+
+m.read()
+
+
 # send status query, should respond with {status:1}
 print(m.json({'status':0},0.1))
 

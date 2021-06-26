@@ -815,7 +815,7 @@ static int32_t AppSWVDataProcess(int32_t * const pData, uint32_t *pDataCount) {
   for(i=0;i<datacount;i++)  {
     pData[i] &= 0xffff; 
     temp = AD5940_ADCCode2Volt(pData[i],AppSWVCfg.AdcPgaGain, AppSWVCfg.ADCRefVolt);
-    pOut[i] = -temp/AppSWVCfg.RtiaValue.Magnitude*1e3f;  /* Result unit is uA. */
+    pOut[i] = temp/AppSWVCfg.RtiaValue.Magnitude*1e3f;  /* Result unit is uA. */
   }
   return 0;
 }

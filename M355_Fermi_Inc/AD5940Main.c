@@ -318,7 +318,7 @@ void AD5940RampStructInit(float vStart, float vEnd, float vIncrement, float vAmp
   //pRampCfg->SampleDelay = 4.5f;                /* Time delay between DAC update and ADC sample. Unit is ms. Calculate theoretical period/2 and then subtract .5ms */
 	pRampCfg->SampleDelay = (500.0 / frequency) - 0.5f;                /* Time delay between DAC update and ADC sample. Unit is ms. Calculate theoretical period/2 and then subtract .5ms */
   //pRampCfg->LPTIARtiaSel = LPTIARTIA_10K;      /* Maximum current decides RTIA value: RTIA = .6V/Imax, Imax = full-scale current in amps*/
-	pRampCfg->LPTIARtiaSel = LPTIARTIA_4K;      /* Maximum current decides RTIA value: RTIA = .6V/Imax, Imax = full-scale current */
+	pRampCfg->LPTIARtiaSel = LPTIARTIA_8K;      /* Maximum current decides RTIA value: RTIA = .6V/Imax, Imax = full-scale current */
 	pRampCfg->AdcPgaGain = ADCPGA_1P5;
 	// if(channel==1.0){
 	// 	//printf("Channel 1\n");
@@ -469,7 +469,7 @@ void AD5940_Main(void)
 				}
 			}
 			else if (version != UNDEFINED) {
-				printf("{\"version\":\"1.0.7\"}*");
+				printf("{\"version\":\"1.0.8\"}*");
 			}
 			else if (vScale != UNDEFINED) {
 	
