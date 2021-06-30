@@ -4,12 +4,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #include "ad5940.h"
 #include "UrtLib.h"
 #include "DioLib.h"
 #include "IntLib.h"
 #include "cJSON.h"
 
+extern AppSWVCfg_Type AppSWVCfg;
 
 #define APPBUFF_SIZE 1024
 uint32_t AppBuff[APPBUFF_SIZE];
@@ -45,10 +47,10 @@ int RTIAvals[] = {0,200,1000,2000,3000,4000,6000,8000,10000,12000,16000,20000,24
 									
 */
 int getRTIA(float maxCurrent){
-	int idealResistor = (int) (.9/maxCurrent);
-	int currentDiff = idealResistor-RTIAvals[0];
-	int i = 1;
-	int nextDiff = idealResistor-RTIAvals[i];
+	int32_t idealResistor = (int32_t)(0.9f/maxCurrent);
+	int32_t currentDiff = idealResistor-RTIAvals[0];
+	int i = 1, j=0;
+	int32_t nextDiff = idealResistor-RTIAvals[i];
 	while(nextDiff<currentDiff){
 		if(i==26){
 			return 26;
@@ -57,10 +59,15 @@ int getRTIA(float maxCurrent){
 		i++;
 		nextDiff = abs(idealResistor - RTIAvals[i]);
 	}
-	return i-1;
+	// fermi made the change so that always using resistor smaller than ideal resistor.
+	if(RTIAvals[i-1]>idealResistor) {
+		j=i-2;
+	} else {
+	  j=i-1;
+	}
+	return j;
 }
 
-									
 /**
 	* @brief Print the SWV scan data through UART in JSON format
 	* @param pData: the buffer stored data for this application. The data from FIFO has been pre-processed.
@@ -258,7 +265,7 @@ static int32_t AD5940PlatformCfg(void)
   seq_cfg.SeqCntCRCClr = bTRUE;
   seq_cfg.SeqEnable = bFALSE;
   seq_cfg.SeqWrTimer = 0;
-  AD5940_SEQCfg(&seq_cfg);
+  AD5940_SEQCfg(&seq_cfg); 
   /* Step3. Interrupt controller */
   AD5940_INTCCfg(AFEINTC_1, AFEINTSRC_ALLINT, bTRUE);   /* Enable all interrupt in INTC1, so we can check INTC flags */
 	AD5940_INTCClrFlag(AFEINTSRC_ALLINT);
@@ -276,24 +283,18 @@ static int32_t AD5940PlatformCfg(void)
   return 0;
 }
 
-
 /**
  * @brief The interface for user to change application paramters.
  * @return return 0.
 */
-void AD5940RampStructInit(float vStart, float vEnd, float vIncrement, float vAmplitude, float frequency, float maxCurrent, float channel)
-{
+void AD5940RampStructInit(float vStart, float vEnd, float vIncrement, float vAmplitude, float frequency, float maxCurrent, float channel) {
   AppSWVCfg_Type *pRampCfg;
   
   AppSWVGetCfg(&pRampCfg);
   /* Step1: configure general parmaters */
   pRampCfg->SeqStartAddr = 0x10;                /* leave 16 commands for LFOSC calibration.  */
   pRampCfg->MaxSeqLen = 1024-0x10;              /* 4kB/4 = 1024  */
-	/*
-		This RcalVal changes based on the AppSWVDataProcess in "SWV".c
-		Not entirely sure why, but there's a slight offset
-	*/
-  pRampCfg->RcalVal = 200.0;                  /* 200 Ohm RCAL on EVAL-ADuCM355QSPZ */
+  pRampCfg->RcalVal = 200.0;                    /* 200 Ohm RCAL on EVAL-ADuCM355QSPZ */
   pRampCfg->ADCRefVolt = 1820.0f;               /* The real ADC reference voltage. Measure it from capacitor C12 with DMM. */
   pRampCfg->FifoThresh = 480;                   /* Maximum value is 2kB/4-1 = 512-1. Set it to higher value to save power. */
   pRampCfg->SysClkFreq = 16000000.0f;           /* System clock is 16MHz by default */
@@ -302,42 +303,21 @@ void AD5940RampStructInit(float vStart, float vEnd, float vIncrement, float vAmp
 	/* Step 2:Configure square wave signal parameters */
 	/* Note: The scan runs in inverted of what is indicated and then shifted by the amplitude  */
 	/* Note: The algorithm is -1 * voltage + peak-to-peak amplitude to match pico */
-	
-	//pRampCfg->RampStartVolt = -100.0f;           /* 0V */
-  //pRampCfg->RampPeakVolt = 500.0f;            	/* -0.6V */
+  // Default values : vStart=-600.0f; vEnd=0; vIncrement=5.0f; vAmplitude=100.0f; frequency=100.0f; maxCurrent=9.99999975e-05f; channel=-99999.0f;	
 	pRampCfg->RampStartVolt = -1.0 * (vStart + vAmplitude);           /* 0V */
 	pRampCfg->RampPeakVolt = -1.0 * (vEnd + vAmplitude);            	/* -0.6V */
   pRampCfg->VzeroStart = 1300.0f;              /* 1.3V, Chosen for widest range of votlage scan. Change with caution	*/
   pRampCfg->VzeroPeak = 1300.0f;               /* 1.3V, Chosen for widest range of votlage scan. Change with caution	*/
-  //pRampCfg->Frequency = 100;                   /* Frequency of square wave in Hz */
   pRampCfg->Frequency = frequency;                   /* Frequency of square wave in Hz */
-  //pRampCfg->SqrWvAmplitude = 100;              /* Peak-to-peak amplitude of square wave in mV */
 	pRampCfg->SqrWvAmplitude = vAmplitude;              /* Peak-to-peak amplitude of square wave in mV */
-  //pRampCfg->SqrWvRampIncrement = +5.0f;        /* Increment in mV. Make sure that the sign is correct */
 	pRampCfg->SqrWvRampIncrement = -1.0 * vIncrement;        /* Increment in mV. Make sure that the sign is correct */
-  //pRampCfg->SampleDelay = 4.5f;                /* Time delay between DAC update and ADC sample. Unit is ms. Calculate theoretical period/2 and then subtract .5ms */
 	pRampCfg->SampleDelay = (500.0 / frequency) - 0.5f;                /* Time delay between DAC update and ADC sample. Unit is ms. Calculate theoretical period/2 and then subtract .5ms */
-  //pRampCfg->LPTIARtiaSel = LPTIARTIA_10K;      /* Maximum current decides RTIA value: RTIA = .6V/Imax, Imax = full-scale current in amps*/
-	pRampCfg->LPTIARtiaSel = LPTIARTIA_8K;      /* Maximum current decides RTIA value: RTIA = .6V/Imax, Imax = full-scale current */
-	pRampCfg->AdcPgaGain = ADCPGA_1P5;
-	// if(channel==1.0){
-	// 	//printf("Channel 1\n");
-	// 	pRampCfg->LPAMP = LPAMP1;
-	// 	pRampCfg->LPDAC = LPDAC1;
-	// 	pRampCfg->REG_AFE_LPDACDAT=REG_AFE_LPDACDAT1;
-	// 	pRampCfg->adcMuxN=ADCMUXN_LPTIA1_N;
-	// 	pRampCfg->adcMuxP=ADCMUXP_LPTIA1_P;
-	// }
-	// else { // Any value besides one will default to channel 1, even an undefined value
-	// 	//printf("Channel 0\n");
-	// 	pRampCfg->LPAMP = LPAMP0;
-	// 	pRampCfg->LPDAC = LPDAC0;
-	// 	pRampCfg->REG_AFE_LPDACDAT=REG_AFE_LPDACDAT0;
-	// 	pRampCfg->adcMuxN=ADCMUXN_LPTIA0_N;
-	// 	pRampCfg->adcMuxP=ADCMUXP_LPTIA0_P;
-	// }
-	// pRampCfg->bParaChanged = bTRUE;
 
+  int rtiaVal = getRTIA(maxCurrent);
+  // to use the widest range of voltage scan, we use 1.3[V] for VzeroStart/VzeroPeak. In this case, RTIA value should be 200[Ohm] - Fermi.
+ // pRampCfg->LPTIARtiaSel = LPTIARTIA_200R; 		 
+  pRampCfg->LPTIARtiaSel = rtiaVal; 		 
+  pRampCfg->AdcPgaGain = ADCPGA_1P5;
 }
 
 // Simple Delay routine
@@ -411,6 +391,8 @@ void UART_Int_Handler()
 	* @brief Main code which waits for UART, scans temperature, runs SWV with UART JSON parameters, and then outputs the data
 	* @return Infinite loop
 */
+int32_t SensorNum=0;
+int32_t gvPretreatment=0, gsecsPretreatment=0;
 void AD5940_Main(void)
 {
   uint32_t temp;  
@@ -469,7 +451,7 @@ void AD5940_Main(void)
 				}
 			}
 			else if (version != UNDEFINED) {
-				printf("{\"version\":\"1.0.8\"}*");
+				printf("{\"version\":\"1.1.0\"}*");
 			}
 			else if (vScale != UNDEFINED) {
 	
@@ -505,17 +487,17 @@ void AD5940_Main(void)
 				
 				temp = cJSON_GetObjectItemCaseSensitive(json, "channel");
 				float channel = temp ? (int) (temp->valuedouble) : UNDEFINED;
-				
+				SensorNum=(int32_t)channel;
 				/* Pretreatment doesn't work yet */
-				//float vPretreatment = cJSON_GetObjectItemCaseSensitive(json, "vPretreatment")->valuedouble * vFactor;
-				//float secsPretreatment = cJSON_GetObjectItemCaseSensitive(json, "secsPretreatment")->valuedouble;
+				gvPretreatment = (int32_t)(cJSON_GetObjectItemCaseSensitive(json, "vPretreatment")->valuedouble * vFactor);
+				gsecsPretreatment = (int32_t)(cJSON_GetObjectItemCaseSensitive(json, "secsPretreatment")->valuedouble);
 				
 				temp = cJSON_GetObjectItemCaseSensitive(json, "muxSelect"); // expecting the string {"setMuxSelect":0-3}* to set the MUX select pins, and will return the same json
 				int muxSelect = temp ? temp->valueint : UNDEFINED;
 				
+				AppSWVCfg.bParaChanged = bTRUE;				
 				AD5940_TemperatureInit();
-				AD5940_WUPTCtrl(bTRUE);
-				
+				AD5940_WUPTCtrl(bTRUE);				
 				while(1){
 				 /* Check if interrupt flag which will be set when interrupt occured. */
 					if(AD5940_GetMCUIntFlag()){

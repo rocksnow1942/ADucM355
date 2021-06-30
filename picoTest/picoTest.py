@@ -20,7 +20,7 @@ if not port:
 
 
 
-pico = Pico(port=port)
+pico = Pico(port='COM7')
 pico.initialize()
 
 
@@ -54,8 +54,8 @@ cell_off
 """
 
 res = pico.runScript(sc,parseValue=True)
-
-pico.close()
+# 
+# pico.close()
 
 p = np.array([i[0] for i in res[1][0]])
 c = np.array([i[1]*1e6 for i in res[1][0]])
@@ -70,7 +70,9 @@ ax.plot(p,c,'-',label='Delta Current')
 ax.legend()
 ax.set_ylabel('Current / uA')
 ax.set_xlabel('Voltage / V')
+
+
 # plt.show()
 
-plt.savefig('./test.png')
+# plt.savefig('./test.png')
 

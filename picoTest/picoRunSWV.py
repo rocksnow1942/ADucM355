@@ -71,7 +71,7 @@ def findPico():
 
 # this finds the pico and connect to it.
 ser = findPico()
-
+ser
 
 
 
