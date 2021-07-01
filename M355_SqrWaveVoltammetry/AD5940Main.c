@@ -32,9 +32,9 @@ unsigned char ucInCnt = 0;                    // Used to count incoming bytes ov
 int iNumBytesInFifo = 0;                      // Used to determine the number of bytes in the UART FIFO
 
 char recvString[256] = "";	// Received string from UART
-int stringReceived = 0;			// Flag to indiciate if a string has been received
-int iForwardFlag = 0;
-int iReverseFlag = 0;
+uint8_t stringReceived = 0;			// Flag to indiciate if a string has been received
+uint8_t iForwardFlag = 0;
+uint8_t iReverseFlag = 0;
 
 /* All available resistor values for RTIA tuning. The index is the number which chooses the values according to ad5940.h */
 int RTIAvals[] = {0,200,1000,2000,3000,4000,6000,8000,10000,12000,16000,20000,24000,30000,32000,40000,48000,64000,85000,96000,100000,
@@ -105,15 +105,16 @@ static int32_t uartPrint(float *pData, uint32_t DataCount)
 	int vStart = -1.0 * (pRampCfg->RampStartVolt + pRampCfg->SqrWvAmplitude);
 	int vEnd = -1.0 * (pRampCfg->RampPeakVolt + pRampCfg->SqrWvAmplitude);
 	printf("{");
-	printf("\"vUnit\":1E-3,");
-	printf("\"vStart\":%d,", vStart);
-	printf("\"vEnd\":%d,", vEnd);
-	printf("\"vIncrement\":%d,", vIncrement);
-	printf("\"iScale\":1E-6,");
+	// printf("\"vUnit\":1E-3,");
+	// printf("\"vStart\":%d,", vStart);
+	// printf("\"vEnd\":%d,", vEnd);
+	// printf("\"vIncrement\":%d,", vIncrement);
+	// printf("\"iScale\":1E-6,");
 	
 	/* Forward Current */
-	printf("\"forwardCurrent\":[");
+	
 	if(iForwardFlag){
+		printf("\"f\":[");
 		for(int i=0;i<index;i++)
 		{
 			if(i!=index-1){
@@ -123,12 +124,13 @@ static int32_t uartPrint(float *pData, uint32_t DataCount)
 				printf("%.3f", forwardData[i]);
 			}
 		}
+		printf("],");
 	}
-	printf("],");
 	
-	/* Reverse Current */
-	printf("\"reverseCurrent\":[");
+	
+	/* Reverse Current */	
 	if(iReverseFlag){
+		printf("\"r\":[");
 		for(int i=0;i<index;i++)
 		{
 			if(i!=index-1){
@@ -139,11 +141,12 @@ static int32_t uartPrint(float *pData, uint32_t DataCount)
 			}
 			
 		}
+		printf("],");
 	}
-	printf("],");
+	
 	
 	/* Subtracted Current */
-	printf("\"subtractCurrent\":[");
+	printf("\"c\":[");
   for(int i=0;i<index;i++)
   {
 		if(i!=index-1){
@@ -288,7 +291,7 @@ static int32_t AD5940PlatformCfg(void)
  * @brief The interface for user to change application paramters.
  * @return return 0.
 */
-void AD5940RampStructInit(float vStart, float vEnd, float vIncrement, float vAmplitude, float frequency, float maxCurrent, float channel,int32_t vPretreatment,int32_t secsPretreatment)
+void AD5940RampStructInit(float vStart, float vEnd, float vIncrement, float vAmplitude, float frequency, float maxCurrent, uint8_t channel,int32_t vPretreatment,int32_t secsPretreatment)
 {
   AppSWVCfg_Type *pRampCfg;
   
@@ -467,10 +470,10 @@ void AD5940_Main(void)
 			firstCommandRecv = 1;
 			stringReceived = 0;
 			
-			// Not sure why but the last character is getting cut off sometimes?? I think it's a UART processing issue
-			if(recvString[(strlen(recvString)-1)] != '}'){
-				strncat(recvString, "}", 1);
-			}
+			// // Not sure why but the last character is getting cut off sometimes?? I think it's a UART processing issue
+			// if(recvString[(strlen(recvString)-1)] != '}'){
+			// 	strncat(recvString, "}", 1);
+			// }
 			
 			cJSON *json = cJSON_Parse(recvString);
 			cJSON *temp;
@@ -493,75 +496,79 @@ void AD5940_Main(void)
 
 
 			
-			// Adding sanity checks for each key to make sure nothing breaks the code ... doing ternary because it's cool
-			// If any key is missing besides "status", then we will continue the while loop and not scan
-			temp = cJSON_GetObjectItemCaseSensitive(json, "status"); // expecting the string {"status":1}* as the check to see if the ADuCM355 is connected, and will return the same json
+			
+			// s key for checking status
+			temp = cJSON_GetObjectItemCaseSensitive(json, "s"); // expecting the string {"s":1}* as the check to see if the ADuCM355 is connected, and will return the same json
 			int status = temp ? temp->valueint : UNDEFINED;
 			
-			temp = cJSON_GetObjectItemCaseSensitive(json, "chipInserted"); // expecting the string {"chipInserted":1}* as the check to see if the chip is connected, and will return the same json
+			temp = cJSON_GetObjectItemCaseSensitive(json, "cI"); // expecting the string {"cI":1}* as the check to see if the chip is connected, and will return the same json
 			int chipInserted = temp ? temp->valueint : UNDEFINED;
 			
-			temp = cJSON_GetObjectItemCaseSensitive(json, "version"); // expecting the string {"version":1}* as the check to return chip version
+			temp = cJSON_GetObjectItemCaseSensitive(json, "v"); // expecting the string {"v":1}* as the check to return firmware version
 			int version = temp ? temp->valueint : UNDEFINED;
 			
-			temp = cJSON_GetObjectItemCaseSensitive(json, "vScale");
-			float vScale = temp ? temp->valuedouble : UNDEFINED;
+			// starting voltage is always in mV
+			temp = cJSON_GetObjectItemCaseSensitive(json, "vS");
+			float vStart = temp ? temp->valuedouble : UNDEFINED;
 			
 			if(status != UNDEFINED){
 				printf("{\"status\":1}*");
 			}
 			else if(chipInserted != UNDEFINED){
 				if(isChipInserted()){
-					printf("{\"chipInserted\":1}*");
+					printf("{\"cI\":1}*");
 				}
 				else{
-					printf("{\"chipInserted\":0}*");
+					printf("{\"cI\":0}*");
 				}
 			}
 			else if (version != UNDEFINED) {
 				printf("{\"version\":\"2.0.0\"}*");
 			}
-			else if (vScale != UNDEFINED) {
+			else if (vStart != UNDEFINED) {
 	
-				float vFactor = vScale/.001; // turn everything into mV
 				
-				temp = cJSON_GetObjectItemCaseSensitive(json, "vStart");
-				float vStart = temp ? temp->valuedouble * vFactor : UNDEFINED;
+				// Ending voltage is always in mV				
+				temp = cJSON_GetObjectItemCaseSensitive(json, "vE");
+				float vEnd = temp ? temp->valuedouble : UNDEFINED;
 				
-				temp = cJSON_GetObjectItemCaseSensitive(json, "vEnd");
-				float vEnd = temp ? temp->valuedouble * vFactor : UNDEFINED;
+				// Scan voltage incremental step in mV
+				temp = cJSON_GetObjectItemCaseSensitive(json, "vI");
+				float vIncrement =  temp ? temp->valuedouble : UNDEFINED;
 				
-				temp = cJSON_GetObjectItemCaseSensitive(json, "vIncrement");
-				float vIncrement =  temp ? temp->valuedouble * vFactor : UNDEFINED;
-				
-				temp = cJSON_GetObjectItemCaseSensitive(json, "vAmplitude");
-				float vAmplitude = temp ? temp->valuedouble * vFactor : UNDEFINED;
-				
-				temp = cJSON_GetObjectItemCaseSensitive(json, "freqHz");
+				// Scan voltage amplitude in mV
+				temp = cJSON_GetObjectItemCaseSensitive(json, "vA");
+				float vAmplitude = temp ? temp->valuedouble : UNDEFINED;
+				// scan frequency in Hz
+				temp = cJSON_GetObjectItemCaseSensitive(json, "Hz");
 				float frequency = temp ? temp->valuedouble : UNDEFINED;
 				
-				temp = cJSON_GetObjectItemCaseSensitive(json, "iScale");
-				float iScale = temp ? temp->valuedouble : UNDEFINED;
-				float iFactor = iScale/1; // turn everything into A
+								
+				// current Scale (or max expected current)
+				temp = cJSON_GetObjectItemCaseSensitive(json, "iS");
+				float maxCurrent = temp ? temp->valuedouble * 1e-6f : UNDEFINED;
 				
-				temp = cJSON_GetObjectItemCaseSensitive(json, "maxCurrent");
-				float maxCurrent = temp ? temp->valuedouble * iFactor : UNDEFINED;
+				// whether return forward current or not
+				temp = cJSON_GetObjectItemCaseSensitive(json, "f");
+				iForwardFlag = temp ? (uint8_t) (temp->valueint) : UNDEFINED;
 				
-				temp = cJSON_GetObjectItemCaseSensitive(json, "iForwardRecv");
-				iForwardFlag = temp ? (int) (temp->valuedouble) : UNDEFINED;
+				temp = cJSON_GetObjectItemCaseSensitive(json, "r");
+				iReverseFlag = temp ? (uint8_t) (temp->valueint) : UNDEFINED;
 				
-				temp = cJSON_GetObjectItemCaseSensitive(json, "iReverseRecv");
-				iReverseFlag = temp ? (int) (temp->valuedouble) : UNDEFINED;
+				// ps = 0 to use potentiostat 0, ps = 1 to use potentiostat 1
+				temp = cJSON_GetObjectItemCaseSensitive(json, "ps");
+				uint8_t channel = temp ? (uint8_t) (temp->valueint) : 0;
 				
-				temp = cJSON_GetObjectItemCaseSensitive(json, "channel");
-				int channel = temp ? (int) (temp->valuedouble) : UNDEFINED;
+				// pretreatment voltage in mV
+				temp = cJSON_GetObjectItemCaseSensitive(json, "vP");
+				int32_t vPretreatment = temp ? (int32_t)(temp->valuedouble) : (int32_t)(vStart);
+				// pretreatment time in milli seconds
+				temp = cJSON_GetObjectItemCaseSensitive(json, "tP");
+				int32_t secsPretreatment = temp ? (int32_t)(temp->valuedouble) : 200;
 				
-				/* Pretreatment doesn't work yet */
-				int32_t vPretreatment = (int32_t)(cJSON_GetObjectItemCaseSensitive(json, "vPretreatment")->valuedouble * vFactor);
-				int32_t secsPretreatment = (int32_t)(cJSON_GetObjectItemCaseSensitive(json, "secsPretreatment")->valuedouble);
-				
-				temp = cJSON_GetObjectItemCaseSensitive(json, "muxSelect"); // expecting the string {"setMuxSelect":0-3}* to set the MUX select pins, and will return the same json
-				int muxSelect = temp ? temp->valueint : UNDEFINED;
+				// select channel 0-3 to set corresonding mux select pins
+				temp = cJSON_GetObjectItemCaseSensitive(json, "ch"); // expecting the string {"setMuxSelect":0-3}* to set the MUX select pins, and will return the same json
+				uint8_t muxSelect = temp ? (uint8_t)(temp->valueint): 0;
 				
 				AD5940RampStructInit(vStart,vEnd,vIncrement,vAmplitude,frequency,maxCurrent,channel,vPretreatment,secsPretreatment); // Initialize the SWV values
 				
@@ -575,24 +582,23 @@ void AD5940_Main(void)
 						AD5940_TemperatureInit();
 						AD5940_TemperatureISR();
 						AD5940_WUPTCtrl(bFALSE);
-
 						// this print temperature seems to be unecessary.
 						// AD5940_PrintTemperatureResult();
 						break;
 					}					
 				}
 				
-				// Set MUX pins
-				if(muxSelect != UNDEFINED){
-					setSelectPins((uint8_t) muxSelect);					
-				}
-			
-				
+				// always Set MUX pins				
+				setSelectPins(muxSelect);					
 				
 				AppSWVInit(AppBuff, APPBUFF_SIZE);    /* Initialize RAMP application. Provide a buffer, which is used to store sequencer commands */
 				
 				AppSWVCtrl(APPCTRL_START, 0);          /* Control IMP measurement to start. Second parameter has no meaning with this command. */
 				
+			}
+			else {
+				// error
+				printf("{\"e\":1}*");
 			}
 			
 			cJSON_Delete(json);

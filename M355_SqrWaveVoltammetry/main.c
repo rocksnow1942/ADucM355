@@ -59,6 +59,13 @@ void GPIOInit(void)
 	DioCfgPin(pADI_GPIO1,PIN2|PIN4,0);      // configure P1.2/P1.4 as gpio
 	DioOenPin(pADI_GPIO1,PIN2|PIN4,1);			// enable P1.2/P1.4 as output
 	DioPulPin(pADI_GPIO1,PIN2|PIN4,0);			// enable pull-down
+
+	// LED pins 
+	DioCfgPin(pADI_GPIO1,PIN0|PIN1|PIN3,0); // PIN1.0-R, PIN1.1-G, PIN1.3-B
+	DioOenPin(pADI_GPIO1,PIN0|PIN1|PIN3,1);
+	DioPulPin(pADI_GPIO1,PIN0|PIN1|PIN3,0);			// enable pull-down; LED will turn on.
+
+	
 	
 	/* P2.4 LED for ADuCM355 breakout board */
 	//DioCfgPin(pADI_GPIO2,PIN4,0); 		// configure P2.4 as gpio
