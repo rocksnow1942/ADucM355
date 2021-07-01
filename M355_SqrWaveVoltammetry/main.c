@@ -9,11 +9,10 @@
 void UartInit(void);
 void ClockInit(void);
 void GPIOInit(void);
-
+void AD5940_Main(void);
 /* Starting code */
 int main(void)
 {
-  void AD5940_Main(void);
   ClockInit();
 	GPIOInit();
   UartInit();

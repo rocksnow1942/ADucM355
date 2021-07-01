@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #include "ad5940.h"
 #include "UrtLib.h"
 #include "DioLib.h"
@@ -45,10 +46,10 @@ int RTIAvals[] = {0,200,1000,2000,3000,4000,6000,8000,10000,12000,16000,20000,24
 									
 */
 int getRTIA(float maxCurrent){
-	int idealResistor = (int) (.9/maxCurrent);
-	int currentDiff = idealResistor-RTIAvals[0];
-	int i = 1;
-	int nextDiff = idealResistor-RTIAvals[i];
+	int32_t idealResistor = (int32_t)(0.9f/maxCurrent);
+	int32_t currentDiff = idealResistor-RTIAvals[0];
+	int i = 1, j=0;
+	int32_t nextDiff = idealResistor-RTIAvals[i];
 	while(nextDiff<currentDiff){
 		if(i==26){
 			return 26;
@@ -57,10 +58,15 @@ int getRTIA(float maxCurrent){
 		i++;
 		nextDiff = abs(idealResistor - RTIAvals[i]);
 	}
-	return i-1;
+	// fermi made the change so that always using resistor smaller than ideal resistor.
+	if(RTIAvals[i-1]>idealResistor) {
+		j=i-2;
+	} else {
+	  j=i-1;
+	}
+	return j;
 }
 
-									
 /**
 	* @brief Print the SWV scan data through UART in JSON format
 	* @param pData: the buffer stored data for this application. The data from FIFO has been pre-processed.
@@ -246,15 +252,12 @@ static int32_t AD5940PlatformCfg(void)
   AD5940_CLKCfg(&clk_cfg);
 	
   /* Step2. Configure FIFO and Sequencer*/
-  fifo_cfg.FIFOEn = bFALSE;           /* We will enable FIFO after all parameters configured */
+  fifo_cfg.FIFOEn = bTRUE;           /* We will enable FIFO after all parameters configured */
   fifo_cfg.FIFOMode = FIFOMODE_FIFO;
   fifo_cfg.FIFOSize = FIFOSIZE_2KB;   /* 2kB for FIFO, The reset 4kB for sequencer */
-  fifo_cfg.FIFOSrc = FIFOSRC_SINC2NOTCH;   /* */
-  fifo_cfg.FIFOThresh = FIFO_THRESHOLD;            /*  Don't care, set it by application paramter */
-  AD5940_FIFOCfg(&fifo_cfg);					/* Disable to reset FIFO */
-	fifo_cfg.FIFOEn = bTRUE;						/* Enable FIFO here */
-	AD5940_FIFOCfg(&fifo_cfg);
-	
+  fifo_cfg.FIFOSrc = FIFOSRC_SINC2NOTCH;   /* Fermi Original = FIFOSRC_SINC3*/
+		fifo_cfg.FIFOThresh = FIFO_THRESHOLD; 					 /* Fermi Original=4 but FIFO_THRESHOLD=16 */
+		AD5940_FIFOCfg(&fifo_cfg);	
 	/* Configure sequencer and stop it */
   seq_cfg.SeqMemSize = SEQMEMSIZE_4KB;  /* 4kB SRAM is used for sequencer, others for data FIFO */
   seq_cfg.SeqBreakEn = bFALSE;
@@ -262,8 +265,7 @@ static int32_t AD5940PlatformCfg(void)
   seq_cfg.SeqCntCRCClr = bTRUE;
   seq_cfg.SeqEnable = bFALSE;
   seq_cfg.SeqWrTimer = 0;
-  AD5940_SEQCfg(&seq_cfg);
-	
+  AD5940_SEQCfg(&seq_cfg); 
   /* Step3. Interrupt controller */
   AD5940_INTCCfg(AFEINTC_1, AFEINTSRC_ALLINT, bTRUE);   /* Enable all interrupt in INTC1, so we can check INTC flags */
 	AD5940_INTCClrFlag(AFEINTSRC_ALLINT);
@@ -286,7 +288,7 @@ static int32_t AD5940PlatformCfg(void)
  * @brief The interface for user to change application paramters.
  * @return return 0.
 */
-void AD5940RampStructInit(float vStart, float vEnd, float vIncrement, float vAmplitude, float frequency, float maxCurrent, float channel)
+void AD5940RampStructInit(float vStart, float vEnd, float vIncrement, float vAmplitude, float frequency, float maxCurrent, float channel,int32_t vPretreatment,int32_t secsPretreatment)
 {
   AppSWVCfg_Type *pRampCfg;
   
@@ -324,26 +326,30 @@ void AD5940RampStructInit(float vStart, float vEnd, float vIncrement, float vAmp
 	pRampCfg->SampleDelay = (500.0 / frequency) - 0.5f;                /* Time delay between DAC update and ADC sample. Unit is ms. Calculate theoretical period/2 and then subtract .5ms */
   //pRampCfg->LPTIARtiaSel = LPTIARTIA_10K;      /* Maximum current decides RTIA value: RTIA = .6V/Imax, Imax = full-scale current in amps*/
 	int rtiaVal = getRTIA(maxCurrent);
+	// if rtia value is changed, then re do the pRampCfg
+	if(rtiaVal != pRampCfg->LPTIARtiaSel) {
+		pRampCfg->SWVInited = bFALSE;
+	}
 	pRampCfg->LPTIARtiaSel = rtiaVal;      /* Maximum current decides RTIA value: RTIA = .6V/Imax, Imax = full-scale current */
 	pRampCfg->AdcPgaGain = ADCPGA_1P5;
-	// if(channel==1.0){
-	// 	//printf("Channel 1\n");
-	// 	pRampCfg->LPAMP = LPAMP1;
-	// 	pRampCfg->LPDAC = LPDAC1;
-	// 	pRampCfg->REG_AFE_LPDACDAT=REG_AFE_LPDACDAT1;
-	// 	pRampCfg->adcMuxN=ADCMUXN_LPTIA1_N;
-	// 	pRampCfg->adcMuxP=ADCMUXP_LPTIA1_P;
-	// }
-	// else { // Any value besides one will default to channel 1, even an undefined value
-	// 	//printf("Channel 0\n");
-	// 	pRampCfg->LPAMP = LPAMP0;
-	// 	pRampCfg->LPDAC = LPDAC0;
-	// 	pRampCfg->REG_AFE_LPDACDAT=REG_AFE_LPDACDAT0;
-	// 	pRampCfg->adcMuxN=ADCMUXN_LPTIA0_N;
-	// 	pRampCfg->adcMuxP=ADCMUXP_LPTIA0_P;
-	// }
-	// pRampCfg->bParaChanged = bTRUE;
-
+	pRampCfg->vPretreatment = vPretreatment;
+	pRampCfg->secsPretreatment = secsPretreatment;
+	if(channel==1){
+		//printf("Channel 0\n");
+		pRampCfg->LPAMP = LPAMP1;
+		pRampCfg->LPDAC = LPDAC1;
+		pRampCfg->REG_AFE_LPDACDAT=REG_AFE_LPDACDAT1;
+		pRampCfg->adcMuxN=ADCMUXN_LPTIA1_N;
+		pRampCfg->adcMuxP=ADCMUXP_LPTIA1_P;
+	}
+	else {
+		pRampCfg->LPAMP = LPAMP0;
+		pRampCfg->LPDAC = LPDAC0;
+		pRampCfg->REG_AFE_LPDACDAT=REG_AFE_LPDACDAT0;
+		pRampCfg->adcMuxN=ADCMUXN_LPTIA0_N;
+		pRampCfg->adcMuxP=ADCMUXP_LPTIA0_P;			
+	}
+	pRampCfg->bParaChanged = bTRUE;
 }
 
 // Simple Delay routine
@@ -442,6 +448,7 @@ void AD5940_Main(void)
 			uartPrint((float*)AppBuff, temp);
 		}
 
+		// if hasn't receive any command, swith the GPIO0 on and off.
 		if (!firstCommandRecv) {
 			counter += 1;
 			if( counter % 200 == 0) 
@@ -469,6 +476,7 @@ void AD5940_Main(void)
 			cJSON *temp;
 			strcpy(recvString, "");
 
+			// if received LED, 
 			temp = cJSON_GetObjectItemCaseSensitive(json, "led");
 			float led = temp ? temp->valuedouble : UNDEFINED;
 			if (led!=UNDEFINED) {
@@ -511,7 +519,7 @@ void AD5940_Main(void)
 				}
 			}
 			else if (version != UNDEFINED) {
-				printf("{\"version\":\"1.0.0\"}*");
+				printf("{\"version\":\"2.0.0\"}*");
 			}
 			else if (vScale != UNDEFINED) {
 	
@@ -546,14 +554,16 @@ void AD5940_Main(void)
 				iReverseFlag = temp ? (int) (temp->valuedouble) : UNDEFINED;
 				
 				temp = cJSON_GetObjectItemCaseSensitive(json, "channel");
-				float channel = temp ? (int) (temp->valuedouble) : UNDEFINED;
+				int channel = temp ? (int) (temp->valuedouble) : UNDEFINED;
 				
 				/* Pretreatment doesn't work yet */
-				//float vPretreatment = cJSON_GetObjectItemCaseSensitive(json, "vPretreatment")->valuedouble * vFactor;
-				//float secsPretreatment = cJSON_GetObjectItemCaseSensitive(json, "secsPretreatment")->valuedouble;
+				int32_t vPretreatment = (int32_t)(cJSON_GetObjectItemCaseSensitive(json, "vPretreatment")->valuedouble * vFactor);
+				int32_t secsPretreatment = (int32_t)(cJSON_GetObjectItemCaseSensitive(json, "secsPretreatment")->valuedouble);
 				
 				temp = cJSON_GetObjectItemCaseSensitive(json, "muxSelect"); // expecting the string {"setMuxSelect":0-3}* to set the MUX select pins, and will return the same json
 				int muxSelect = temp ? temp->valueint : UNDEFINED;
+				
+				AD5940RampStructInit(vStart,vEnd,vIncrement,vAmplitude,frequency,maxCurrent,channel,vPretreatment,secsPretreatment); // Initialize the SWV values
 				
 				AD5940_TemperatureInit();
 				AD5940_WUPTCtrl(bTRUE);
@@ -565,18 +575,19 @@ void AD5940_Main(void)
 						AD5940_TemperatureInit();
 						AD5940_TemperatureISR();
 						AD5940_WUPTCtrl(bFALSE);
-						AD5940_PrintTemperatureResult();
+
+						// this print temperature seems to be unecessary.
+						// AD5940_PrintTemperatureResult();
 						break;
-					}
+					}					
 				}
 				
 				// Set MUX pins
 				if(muxSelect != UNDEFINED){
-					setSelectPins((uint8_t) muxSelect);
-					//printf("{\"setMuxSelect\":%d}*",muxSelect);
+					setSelectPins((uint8_t) muxSelect);					
 				}
 			
-				AD5940RampStructInit(vStart,vEnd,vIncrement,vAmplitude,frequency,maxCurrent,channel); // Initialize the SWV values
+				
 				
 				AppSWVInit(AppBuff, APPBUFF_SIZE);    /* Initialize RAMP application. Provide a buffer, which is used to store sequencer commands */
 				
