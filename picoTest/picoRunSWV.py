@@ -71,9 +71,9 @@ def findPico():
 
 # this finds the pico and connect to it.
 ser = findPico()
+
+
 ser
-
-
 
 
 # Uncomment the following block to manually connect to the pico port:
@@ -102,13 +102,40 @@ ser
 # Ramp increment of square wave is 5mV.
 # this program also set a pretreatment Vbias at -600mV for 200ms (milliseconds)
 # after SWV is done, it will turn off the cell.
-script = """e
+
+# script 1 run scan on potentiostat 1 on Pico
+script1 = """e
 var c
 var p
 var f
 var r
 set_pgstat_chan 0
 set_pgstat_mode 3
+set_max_bandwidth 400
+set_pot_range -600m 0m
+set_autoranging 100u 100u
+cell_on
+set_e -600m
+wait 200m
+meas_loop_swv p c f r -600m 0m 5m 50m 100
+	pck_start
+	pck_add c
+	pck_end
+endloop
+on_finished:
+cell_off
+
+"""
+
+
+# script 2 run scan on potentiostat 2 on Pico
+script2 = """e
+var c
+var p
+var f
+var r
+set_pgstat_chan 1
+set_pgstat_mode 2
 set_max_bandwidth 400
 set_pot_range -600m 0m
 set_autoranging 100u 100u
@@ -143,12 +170,14 @@ if ser: # here checks for if the pico is connected.
     interval = 3 # interval of the scan in seconds
 
     # it will repeat for [count] times.
-    count = 1000 # how many total scan it will repeat. You can set it to very large number so it will keep running.
-
+    count = 10 # how many total scan it will repeat. You can set it to very large number so it will keep running.
+    
+    #run scan on potentiostat 2 first:
+    ser.write(script2.encode("ascii")) 
 
     for i in range(count):
         print(f'Scan Pico ... {i+1} / {count}') 
-        ser.write(script.encode("ascii")) # writes script to pico 
+        ser.write(script1.encode("ascii")) # writes script to pico 
         time.sleep(1) # wait for 1 second
         res = ser.read_all() # read all data returned from pico.
         while res:  # keep reading until all data is returned.

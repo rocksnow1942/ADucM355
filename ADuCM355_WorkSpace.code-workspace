@@ -2,6 +2,9 @@
 	"folders": [
 		{
 			"path": "."
+		},
+		{
+			"path": "..\\Scott355_Lab10K"
 		}
 	],
 	"settings": {}

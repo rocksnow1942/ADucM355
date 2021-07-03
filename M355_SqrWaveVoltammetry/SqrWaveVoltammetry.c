@@ -186,8 +186,12 @@ static AppSWVCfg_Type AppSWVCfg =
 	.LPAMP = LPAMP0,							/* LPAMP0 for channel 0, LPAMP1 for channel 1	*/
 	.LPDAC = LPDAC0,							/* LPDAC0 for channel 0, LPDAC1 for channel 1	*/
 	.REG_AFE_LPDACDAT = REG_AFE_LPDACDAT0,		/* REG_AFE_LPDACDAT0 for channel 0, REG_AFE_LPDACDAT1 for channel 1	*/
-	
-	
+	.channel = 0,
+	.adcMuxN = ADCMUXN_LPTIA0_N,
+  .adcMuxP = ADCMUXP_LPTIA0_P,
+  .vPretreatment = -600,
+  .secsPretreatment = 200,
+  .channel = 0,
 };
 
 /**

@@ -19,7 +19,7 @@ float LFOSCFreq;    /* Measured LFOSC frequency */
 
 
 int UNDEFINED = -99999; // random out-of-bounds number for checking if key is there
-void delay(long int);
+
 
 volatile unsigned char ucCOMSTA0 = 0;         // Variable used to store COMSTA0, UART status register
 volatile unsigned char ucCOMIID0 = 0;         // Variable used to store COMIID0, UART Interrupt status register
@@ -202,6 +202,18 @@ void setSelect1(uint8_t value){
 }
 
 /**
+Turn LED to a state. Use a bit mask, RGB order
+bit positions are 0 , 3, 4, 
+currently, 0 is R, 3 is Blue, 4 is Green
+*/
+void trunLED(uint8_t state){
+	DioSetPin(pADI_GPIO1,(PIN0|PIN3) & state );
+	DioSetPin(pADI_GPIO2,PIN4 & state );
+	DioClrPin(pADI_GPIO1,(PIN0|PIN3) ^ state);
+	DioClrPin(pADI_GPIO2,PIN4 ^ state);		
+}
+
+/**
  * @brief Sets GPIO0 and GPIO1 in binary from the given decimal
  * @note uint8_t is either 0-3, 0=00, 1=01, 2=10, 3=11
  * @return returns void
@@ -329,37 +341,40 @@ void AD5940RampStructInit(float vStart, float vEnd, float vIncrement, float vAmp
 	pRampCfg->SampleDelay = (500.0 / frequency) - 0.5f;                /* Time delay between DAC update and ADC sample. Unit is ms. Calculate theoretical period/2 and then subtract .5ms */
   //pRampCfg->LPTIARtiaSel = LPTIARTIA_10K;      /* Maximum current decides RTIA value: RTIA = .6V/Imax, Imax = full-scale current in amps*/
 	int rtiaVal = getRTIA(maxCurrent);
-	// if rtia value is changed, then re do the pRampCfg
-	if(rtiaVal != pRampCfg->LPTIARtiaSel) {
+	// if rtia value is changed, or sensor is changed, then re do the SWVInit, (RTIA cal)
+	if((rtiaVal != pRampCfg->LPTIARtiaSel) ||(pRampCfg->channel!=channel) ) {
 		pRampCfg->SWVInited = bFALSE;
 	}
 	pRampCfg->LPTIARtiaSel = rtiaVal;      /* Maximum current decides RTIA value: RTIA = .6V/Imax, Imax = full-scale current */
 	pRampCfg->AdcPgaGain = ADCPGA_1P5;
 	pRampCfg->vPretreatment = vPretreatment;
 	pRampCfg->secsPretreatment = secsPretreatment;
+	pRampCfg->channel = channel;
 	if(channel==1){
 		//printf("Channel 0\n");
 		pRampCfg->LPAMP = LPAMP1;
 		pRampCfg->LPDAC = LPDAC1;
 		pRampCfg->REG_AFE_LPDACDAT=REG_AFE_LPDACDAT1;
 		pRampCfg->adcMuxN=ADCMUXN_LPTIA1_N;
-		pRampCfg->adcMuxP=ADCMUXP_LPTIA1_P;
+		pRampCfg->adcMuxP=ADCMUXP_LPTIA1_P;		
 	}
 	else {
 		pRampCfg->LPAMP = LPAMP0;
 		pRampCfg->LPDAC = LPDAC0;
 		pRampCfg->REG_AFE_LPDACDAT=REG_AFE_LPDACDAT0;
 		pRampCfg->adcMuxN=ADCMUXN_LPTIA0_N;
-		pRampCfg->adcMuxP=ADCMUXP_LPTIA0_P;			
+		pRampCfg->adcMuxP=ADCMUXP_LPTIA0_P;		
 	}
 	pRampCfg->bParaChanged = bTRUE;
 }
 
 // Simple Delay routine
-void delay (long int length)
+// time in milli seconds
+void delay (int time)
 {
-	while (length >0)
-    	length--;
+	long int loop = time * 2500;
+	while (loop  >0)
+    	loop--;
 }
 
 
@@ -421,6 +436,50 @@ void UART_Int_Handler()
 	}
 }
 
+
+
+/**
+Run the board QC sequence.
+*/
+void BoardQCProcess(void) {
+uint8_t s = 0;
+while(isChipInserted()) {
+	trunLED(s);
+	s+=1;
+	delay(100);
+}
+}
+
+/*Run a SWV measurement*/
+void SWVMeasure(float vStart, float vEnd, float vIncrement, float vAmplitude,\
+	float frequency, float maxCurrent, uint8_t channel,\
+	int32_t vPretreatment,int32_t secsPretreatment,uint8_t muxSelect) {
+	AD5940RampStructInit(vStart,vEnd,vIncrement,vAmplitude,frequency,maxCurrent,channel,vPretreatment,secsPretreatment); // Initialize the SWV values				
+	AD5940_TemperatureInit();
+	AD5940_WUPTCtrl(bTRUE);
+	
+	while(1){
+		/* Check if interrupt flag which will be set when interrupt occured. */
+		if(AD5940_GetMCUIntFlag()){
+			AD5940_ClrMCUIntFlag(); /* Clear this flag */
+			AD5940_TemperatureInit();
+			AD5940_TemperatureISR();
+			AD5940_WUPTCtrl(bFALSE);
+			// this print temperature seems to be unecessary.
+			// AD5940_PrintTemperatureResult();
+			break;
+		}					
+	}
+	
+	// always Set MUX pins				
+	setSelectPins(muxSelect);					
+	
+	AppSWVInit(AppBuff, APPBUFF_SIZE);    /* Initialize RAMP application. Provide a buffer, which is used to store sequencer commands */
+	
+	AppSWVCtrl(APPCTRL_START, 0);          /* Control IMP measurement to start. Second parameter has no meaning with this command. */
+}
+
+
 uint8_t firstCommandRecv = 0;
 uint8_t pinState =  0;
 uint8_t pinEnable =  0;
@@ -441,6 +500,8 @@ void AD5940_Main(void)
 	*/
 	AD5940PlatformCfg(); 
 	AD5940_ClrMCUIntFlag();
+
+	BoardQCProcess();
 	while(1)
 	{
 		if(AD5940_GetMCUIntFlag())
@@ -456,11 +517,11 @@ void AD5940_Main(void)
 			counter += 1;
 			if( counter % 200 == 0) 
 				{
-					setSelect0(pinState);
-					pinState ^=1;
+					trunLED(pinState);
+					pinState ^=0x19;
 					counter = 0;
 				}			
-			delay(9999);
+			delay(5);
 		}
 		
 		
@@ -483,8 +544,8 @@ void AD5940_Main(void)
 			temp = cJSON_GetObjectItemCaseSensitive(json, "led");
 			float led = temp ? temp->valuedouble : UNDEFINED;
 			if (led!=UNDEFINED) {
-				setSelect0(pinState);
-				pinState ^=1;
+				trunLED(pinState);
+				pinState ^=0x19;
 			}
 
 			temp = cJSON_GetObjectItemCaseSensitive(json, "ledoff");
@@ -493,8 +554,6 @@ void AD5940_Main(void)
 				DioOenPin(pADI_GPIO1,PIN2,pinEnable);			// toggle enable disable pin
 				pinEnable ^=1;
 			}
-
-
 			
 			
 			// s key for checking status
@@ -512,7 +571,7 @@ void AD5940_Main(void)
 			float vStart = temp ? temp->valuedouble : UNDEFINED;
 			
 			if(status != UNDEFINED){
-				printf("{\"status\":1}*");
+				printf("{\"s\":1}*");
 			}
 			else if(chipInserted != UNDEFINED){
 				if(isChipInserted()){
@@ -523,7 +582,7 @@ void AD5940_Main(void)
 				}
 			}
 			else if (version != UNDEFINED) {
-				printf("{\"version\":\"2.0.0\"}*");
+				printf("{\"v\":\"2.0.1\"}*");
 			}
 			else if (vStart != UNDEFINED) {
 	
@@ -570,30 +629,9 @@ void AD5940_Main(void)
 				temp = cJSON_GetObjectItemCaseSensitive(json, "ch"); // expecting the string {"setMuxSelect":0-3}* to set the MUX select pins, and will return the same json
 				uint8_t muxSelect = temp ? (uint8_t)(temp->valueint): 0;
 				
-				AD5940RampStructInit(vStart,vEnd,vIncrement,vAmplitude,frequency,maxCurrent,channel,vPretreatment,secsPretreatment); // Initialize the SWV values
-				
-				AD5940_TemperatureInit();
-				AD5940_WUPTCtrl(bTRUE);
-				
-				while(1){
-				 /* Check if interrupt flag which will be set when interrupt occured. */
-					if(AD5940_GetMCUIntFlag()){
-						AD5940_ClrMCUIntFlag(); /* Clear this flag */
-						AD5940_TemperatureInit();
-						AD5940_TemperatureISR();
-						AD5940_WUPTCtrl(bFALSE);
-						// this print temperature seems to be unecessary.
-						// AD5940_PrintTemperatureResult();
-						break;
-					}					
-				}
-				
-				// always Set MUX pins				
-				setSelectPins(muxSelect);					
-				
-				AppSWVInit(AppBuff, APPBUFF_SIZE);    /* Initialize RAMP application. Provide a buffer, which is used to store sequencer commands */
-				
-				AppSWVCtrl(APPCTRL_START, 0);          /* Control IMP measurement to start. Second parameter has no meaning with this command. */
+				SWVMeasure( vStart,  vEnd,  vIncrement,  vAmplitude,\
+							frequency,  maxCurrent,  channel,\
+							vPretreatment, secsPretreatment, muxSelect);
 				
 			}
 			else {

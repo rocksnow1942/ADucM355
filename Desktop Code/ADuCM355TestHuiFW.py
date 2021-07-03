@@ -61,9 +61,12 @@ m = M355(findComPort())
 
 
 # send status query, should respond with {status:1}
-print(m.json({'status':0},0.1))
+print(m.json({'s':0},0.1))
 
-print(m.json({'version':0},0.1))
+print(m.json({'v':0},0.1))
+
+print(m.json({'led':0},0.1))
+
 
 
 para=dict(
