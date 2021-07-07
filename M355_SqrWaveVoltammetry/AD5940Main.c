@@ -342,7 +342,7 @@ void AD5940RampStructInit(float vStart, float vEnd, float vIncrement, float vAmp
   //pRampCfg->LPTIARtiaSel = LPTIARTIA_10K;      /* Maximum current decides RTIA value: RTIA = .6V/Imax, Imax = full-scale current in amps*/
 	int rtiaVal = getRTIA(maxCurrent);
 	// if rtia value is changed, or sensor is changed, then re do the SWVInit, (RTIA cal)
-	if((rtiaVal != pRampCfg->LPTIARtiaSel) ||(pRampCfg->channel!=channel) ) {
+	if((rtiaVal != pRampCfg->LPTIARtiaSel) ) {
 		pRampCfg->SWVInited = bFALSE;
 	}
 	pRampCfg->LPTIARtiaSel = rtiaVal;      /* Maximum current decides RTIA value: RTIA = .6V/Imax, Imax = full-scale current */
@@ -446,7 +446,10 @@ uint8_t s = 0;
 while(isChipInserted()) {
 	trunLED(s);
 	s+=1;
-	delay(100);
+	delay(20);
+	if (s>252) {
+		break;
+	}
 }
 }
 
@@ -582,7 +585,7 @@ void AD5940_Main(void)
 				}
 			}
 			else if (version != UNDEFINED) {
-				printf("{\"v\":\"2.0.1\"}*");
+				printf("{\"v\":\"2.0.5\"}*");
 			}
 			else if (vStart != UNDEFINED) {
 	

@@ -463,7 +463,7 @@ static AD5940Err AppSWVSeqADCCtrlGen(void)
  *          - CurrRampCode
  * @return return error code.
 */
-static AD5940Err RampDacRegUpdate(uint32_t *pDACData)
+static AD5940Err RampDacRegUpdate(uint32_t *pDACData, uint8_t bFinal)
 {
   uint32_t VbiasCode, VzeroCode;
 
@@ -500,7 +500,12 @@ static AD5940Err RampDacRegUpdate(uint32_t *pDACData)
 	}
   VzeroCode = AppSWVCfg.CurrVzeroCode;
   VbiasCode = (uint32_t)(VzeroCode*64 + AppSWVCfg.CurrRampCode);
-
+  // test don't change with bFinal
+  // if(bFinal) {
+	// 	VbiasCode = (uint32_t)(VzeroCode*64);
+	// } else {
+	// 	VbiasCode = (uint32_t)(VzeroCode*64 + AppSWVCfg.CurrRampCode);
+	// }
   if(VbiasCode < (VzeroCode*64))
     VbiasCode --;
   /* Truncate */
@@ -590,7 +595,7 @@ static AD5940Err AppSWVSeqDACCtrlGen(void)
   {
     uint32_t CurrAddr = SRAMAddr;
     SRAMAddr += SEQLEN_ONESTEP;  /* Jump to next sequence */
-    RampDacRegUpdate(&DACData);
+    RampDacRegUpdate(&DACData,0);
     
     // comment out (Hui)
     SeqCmdBuff[0] = SEQ_WR(AppSWVCfg.REG_AFE_LPDACDAT, DACData);
@@ -607,7 +612,7 @@ static AD5940Err AppSWVSeqDACCtrlGen(void)
     uint32_t CurrAddr = SRAMAddr;
     SRAMAddr += SEQLEN_ONESTEP;  /* Jump to next sequence */
     /* After update LPDAC with final data, we let sequencer to run 'final final' command, to disable sequencer.  */
-    RampDacRegUpdate(&DACData);
+    RampDacRegUpdate(&DACData,1);
     
     // comment out (hui)
     SeqCmdBuff[0] = SEQ_WR(AppSWVCfg.REG_AFE_LPDACDAT, DACData);
@@ -618,8 +623,10 @@ static AD5940Err AppSWVSeqDACCtrlGen(void)
     AD5940_SEQCmdWrite(CurrAddr, SeqCmdBuff, SEQLEN_ONESTEP);
     CurrAddr += SEQLEN_ONESTEP;
     /* The final final command is to disable sequencer. */
-    SeqCmdBuff[0] = SEQ_WR(REG_AFE_LPDACDAT0, 0);
-    SeqCmdBuff[1] = SEQ_WR(REG_AFE_LPDACDAT1, 0);
+   SeqCmdBuff[0] = SEQ_NOP();    /* Do nothing */
+   SeqCmdBuff[1] = SEQ_NOP();
+    // SeqCmdBuff[0] = SEQ_WR(REG_AFE_LPDACDAT0, 0);
+    // SeqCmdBuff[1] = SEQ_WR(REG_AFE_LPDACDAT1, 0);
     SeqCmdBuff[2] = SEQ_NOP();
     SeqCmdBuff[3] = SEQ_STOP();   /* Stop sequencer. */
     /* Disable sequencer, END of sequencer interrupt is generated. */
@@ -631,7 +638,7 @@ static AD5940Err AppSWVSeqDACCtrlGen(void)
     uint32_t CurrAddr = SRAMAddr;
     SRAMAddr = (DACSeqCurrBlk == CURRBLK_BLK0)?\
               DACSeqBlk1Addr:DACSeqBlk0Addr;
-    RampDacRegUpdate(&DACData);          
+    RampDacRegUpdate(&DACData,0);          
     
     // comment out (Hui)
     SeqCmdBuff[0] = SEQ_WR(AppSWVCfg.REG_AFE_LPDACDAT, DACData);

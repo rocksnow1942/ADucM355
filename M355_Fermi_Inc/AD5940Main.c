@@ -451,7 +451,7 @@ void AD5940_Main(void)
 				}
 			}
 			else if (version != UNDEFINED) {
-				printf("{\"version\":\"1.1.0\"}*");
+				printf("{\"version\":\"1.2.0\"}*");
 			}
 			else if (vScale != UNDEFINED) {
 	

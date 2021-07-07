@@ -483,7 +483,7 @@ static AD5940Err AppSWVSeqADCCtrlGen(void) {
  *          - CurrRampCode
  * @return return error code.
 */
-static AD5940Err RampDacRegUpdate(uint32_t *pDACData) {
+static AD5940Err RampDacRegUpdate(uint32_t *pDACData, int32_t bFinal) {
   uint32_t VbiasCode, VzeroCode;
 
   switch(AppSWVCfg.RampState)  {
@@ -514,7 +514,11 @@ static AD5940Err RampDacRegUpdate(uint32_t *pDACData) {
 		AppSWVCfg.bSqrWaveHiLevel = bTRUE;
 	}
   VzeroCode = AppSWVCfg.CurrVzeroCode;
-  VbiasCode = (uint32_t)(VzeroCode*64 + AppSWVCfg.CurrRampCode);
+  if(bFinal) {
+		VbiasCode = (uint32_t)(VzeroCode*64);
+	} else {
+		VbiasCode = (uint32_t)(VzeroCode*64 + AppSWVCfg.CurrRampCode);
+	}
 
   if(VbiasCode < (VzeroCode*64))
     VbiasCode --;
@@ -602,7 +606,7 @@ static AD5940Err AppSWVSeqDACCtrlGen(void) {
   for(i=0; i<StepsThisBlock - 1; i++) {
     uint32_t CurrAddr = SRAMAddr;
     SRAMAddr += SEQLEN_ONESTEP;  /* Jump to next sequence */
-    RampDacRegUpdate(&DACData);
+    RampDacRegUpdate(&DACData,0);
     if(SensorNum== 1) {  // 	// SensorNum=1 means Sensor#1, SensorNum=2 means Sensor#2
 			SeqCmdBuff[0] = SEQ_WR(REG_AFE_LPDACDAT0, DACData);
 		} else {
@@ -620,8 +624,8 @@ static AD5940Err AppSWVSeqDACCtrlGen(void) {
     uint32_t CurrAddr = SRAMAddr;
     SRAMAddr += SEQLEN_ONESTEP;  /* Jump to next sequence */
     /* After update LPDAC with final data, we let sequencer to run 'final final' command, to disable sequencer.  */
-    RampDacRegUpdate(&DACData);
-    if(SensorNum== 1) {  // 	// SensorNum=1 means Sensor#1, SensorNum=2 means Sensor#2
+    RampDacRegUpdate(&DACData,1);
+		if(SensorNum== 1) {  // 	// SensorNum=1 means Sensor#1, SensorNum=2 means Sensor#2
 			SeqCmdBuff[0] = SEQ_WR(REG_AFE_LPDACDAT0, DACData);
 		} else {
 			SeqCmdBuff[0] = SEQ_WR(REG_AFE_LPDACDAT1, DACData);
@@ -633,10 +637,10 @@ static AD5940Err AppSWVSeqDACCtrlGen(void) {
     AD5940_SEQCmdWrite(CurrAddr, SeqCmdBuff, SEQLEN_ONESTEP);
     CurrAddr += SEQLEN_ONESTEP;
     /* The final final command is to disable sequencer. */
-//    SeqCmdBuff[0] = SEQ_NOP();    /* Do nothing */
-//    SeqCmdBuff[1] = SEQ_NOP();
-    SeqCmdBuff[0] = SEQ_WR(REG_AFE_LPDACDAT0, 0);
-    SeqCmdBuff[1] = SEQ_WR(REG_AFE_LPDACDAT1, 0);
+   SeqCmdBuff[0] = SEQ_NOP();    /* Do nothing */
+   SeqCmdBuff[1] = SEQ_NOP();
+    // SeqCmdBuff[0] = SEQ_WR(REG_AFE_LPDACDAT0, 0);
+    // SeqCmdBuff[1] = SEQ_WR(REG_AFE_LPDACDAT1, 0);
     SeqCmdBuff[2] = SEQ_NOP();
     SeqCmdBuff[3] = SEQ_STOP();   /* Stop sequencer. */
     /* Disable sequencer, END of sequencer interrupt is generated. */
@@ -645,7 +649,7 @@ static AD5940Err AppSWVSeqDACCtrlGen(void) {
     /* Jump to next block. */
     uint32_t CurrAddr = SRAMAddr;
     SRAMAddr = (DACSeqCurrBlk == CURRBLK_BLK0)? DACSeqBlk1Addr:DACSeqBlk0Addr;
-    RampDacRegUpdate(&DACData);          
+    RampDacRegUpdate(&DACData,0);          
     if(SensorNum== 1) {  // 	// SensorNum=1 means Sensor#1, SensorNum=2 means Sensor#2
 			SeqCmdBuff[0] = SEQ_WR(REG_AFE_LPDACDAT0, DACData);
 		} else {
@@ -765,7 +769,7 @@ AD5940Err AppSWVInit(uint32_t *pBuffer, uint32_t BufferSize) {
   AD5940_SEQCfg(&seq_cfg);
   /* Start sequence generator */
   /* Initialize sequencer generator */
-  if(AppSWVCfg.bParaChanged == bTRUE) {
+  if((AppSWVCfg.bParaChanged == bTRUE )|| (AppSWVCfg.SWVInited == bFALSE)) {
 		if(AppSWVCfg.SWVInited == bFALSE) {
 			if(pBuffer == 0)	
 				return AD5940ERR_PARA;
