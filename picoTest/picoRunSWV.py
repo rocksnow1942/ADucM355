@@ -112,12 +112,12 @@ var r
 set_pgstat_chan 0
 set_pgstat_mode 3
 set_max_bandwidth 400
-set_pot_range -600m 0m
+set_pot_range -700m 0m
 set_autoranging 100u 100u
 cell_on
 set_e -600m
 wait 200m
-meas_loop_swv p c f r -600m 0m 5m 50m 100
+meas_loop_swv p c f r -700m 0m 10m 50m 100
 	pck_start
 	pck_add c
 	pck_end
@@ -140,9 +140,9 @@ set_max_bandwidth 400
 set_pot_range -600m 0m
 set_autoranging 100u 100u
 cell_on
-set_e -600m
+set_e -700m
 wait 200m
-meas_loop_swv p c f r -600m 0m 5m 50m 100
+meas_loop_swv p c f r -700m 0m 10m 50m 100
 	pck_start
 	pck_add c
 	pck_end
@@ -152,7 +152,9 @@ cell_off
 
 """
 
+ser.write(script2.encode("ascii")) 
 
+ser.write(script1.encode("ascii")) # writes script to pico 
 
 """
 To Fermi:
