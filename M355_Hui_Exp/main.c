@@ -67,7 +67,11 @@ void GPIOInit(void)
 
 	DioCfgPin(pADI_GPIO2,PIN4,0); // PIN1.0-R, PIN1.1-G, PIN1.3-B
 	DioOenPin(pADI_GPIO2,PIN4,1);
-	DioPulPin(pADI_GPIO2,PIN4,0);
+	DioPulPin(pADI_GPIO2,PIN4,0); 
+	
+	DioCfgPin(pADI_GPIO0,PIN5,0); // configure P0.5 as on board LED.
+	DioOenPin(pADI_GPIO0,PIN5,1);
+	DioPulPin(pADI_GPIO0,PIN5,0);
 	
 	
 	/* P2.4 LED for ADuCM355 breakout board */

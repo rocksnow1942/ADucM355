@@ -303,7 +303,7 @@ static int32_t AD5940PlatformCfg(void)
  * @brief The interface for user to change application paramters.
  * @return return 0.
 */
-void AD5940RampStructInit(float vStart, float vEnd, float vIncrement, float vAmplitude, float frequency, float maxCurrent, uint8_t channel,int32_t vPretreatment,int32_t secsPretreatment)
+void AD5940RampStructInit(float vStart, float vEnd, float vIncrement, float vAmplitude, float frequency, float maxCurrent, uint8_t pstat,int32_t vPretreatment,int32_t secsPretreatment)
 {
   AppSWVCfg_Type *pRampCfg;
   
@@ -349,8 +349,8 @@ void AD5940RampStructInit(float vStart, float vEnd, float vIncrement, float vAmp
 	pRampCfg->AdcPgaGain = ADCPGA_1P5;
 	pRampCfg->vPretreatment = vPretreatment;
 	pRampCfg->secsPretreatment = secsPretreatment;
-	pRampCfg->channel = channel;
-	if(channel==1){
+	pRampCfg->pstat = pstat;
+	if(pstat==1){
 		//printf("Channel 0\n");
 		pRampCfg->LPAMP = LPAMP1;
 		pRampCfg->LPDAC = LPDAC1;
@@ -455,9 +455,9 @@ while(isChipInserted()) {
 
 /*Run a SWV measurement*/
 void SWVMeasure(float vStart, float vEnd, float vIncrement, float vAmplitude,\
-	float frequency, float maxCurrent, uint8_t channel,\
-	int32_t vPretreatment,int32_t secsPretreatment,uint8_t muxSelect) {
-	AD5940RampStructInit(vStart,vEnd,vIncrement,vAmplitude,frequency,maxCurrent,channel,vPretreatment,secsPretreatment); // Initialize the SWV values				
+	float frequency, float maxCurrent, uint8_t pstat,\
+	int32_t vPretreatment,int32_t secsPretreatment,uint8_t channel) {
+	AD5940RampStructInit(vStart,vEnd,vIncrement,vAmplitude,frequency,maxCurrent,pstat,vPretreatment,secsPretreatment); // Initialize the SWV values				
 	AD5940_TemperatureInit();
 	AD5940_WUPTCtrl(bTRUE);
 	
@@ -475,7 +475,7 @@ void SWVMeasure(float vStart, float vEnd, float vIncrement, float vAmplitude,\
 	}
 	
 	// always Set MUX pins				
-	setSelectPins(muxSelect);					
+	setSelectPins(channel);					
 	
 	AppSWVInit(AppBuff, APPBUFF_SIZE);    /* Initialize RAMP application. Provide a buffer, which is used to store sequencer commands */
 	
@@ -504,7 +504,10 @@ void AD5940_Main(void)
 	AD5940PlatformCfg(); 
 	AD5940_ClrMCUIntFlag();
 
-	BoardQCProcess();
+	BoardQCProcess(); 
+	// turn on board LED on:
+	DioSetPin(pADI_GPIO0, PIN5);
+
 	while(1)
 	{
 		if(AD5940_GetMCUIntFlag())
@@ -548,7 +551,10 @@ void AD5940_Main(void)
 			float led = temp ? temp->valuedouble : UNDEFINED;
 			if (led!=UNDEFINED) {
 				trunLED(pinState);
+				DioSetPin(pADI_GPIO0, PIN5 & (pinState << 1));
+				DioClrPin(pADI_GPIO0, PIN5 ^ (pinState << 1));
 				pinState ^=0x19;
+				
 			}
 
 			temp = cJSON_GetObjectItemCaseSensitive(json, "ledoff");
@@ -585,7 +591,7 @@ void AD5940_Main(void)
 				}
 			}
 			else if (version != UNDEFINED) {
-				printf("{\"v\":\"2.0.5\"}*");
+				printf("{\"v\":\"2.0.8\"}*");
 			}
 			else if (vStart != UNDEFINED) {
 	
@@ -619,7 +625,7 @@ void AD5940_Main(void)
 				
 				// ps = 0 to use potentiostat 0, ps = 1 to use potentiostat 1
 				temp = cJSON_GetObjectItemCaseSensitive(json, "ps");
-				uint8_t channel = temp ? (uint8_t) (temp->valueint) : 0;
+				uint8_t pstat = temp ? (uint8_t) (temp->valueint) : 0;
 				
 				// pretreatment voltage in mV
 				temp = cJSON_GetObjectItemCaseSensitive(json, "vP");
@@ -630,11 +636,11 @@ void AD5940_Main(void)
 				
 				// select channel 0-3 to set corresonding mux select pins
 				temp = cJSON_GetObjectItemCaseSensitive(json, "ch"); // expecting the string {"setMuxSelect":0-3}* to set the MUX select pins, and will return the same json
-				uint8_t muxSelect = temp ? (uint8_t)(temp->valueint): 0;
+				uint8_t channel = temp ? (uint8_t)(temp->valueint): 0;
 				
 				SWVMeasure( vStart,  vEnd,  vIncrement,  vAmplitude,\
-							frequency,  maxCurrent,  channel,\
-							vPretreatment, secsPretreatment, muxSelect);
+							frequency,  maxCurrent,  pstat,\
+							vPretreatment, secsPretreatment, channel);
 				
 			}
 			else {
