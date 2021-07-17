@@ -432,12 +432,10 @@ void BoardQCProcess(void) {
 			delay(500);
 		} else {
 			turnLED(0); // turn on LED and exit
-			break;
 		}
 	}
-	
-	
 
+	turnLED(0x19); // turn off the LED
 }
 
 
