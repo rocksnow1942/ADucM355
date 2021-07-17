@@ -186,12 +186,11 @@ static AppSWVCfg_Type AppSWVCfg =
 	.LPAMP = LPAMP0,							/* LPAMP0 for channel 0, LPAMP1 for channel 1	*/
 	.LPDAC = LPDAC0,							/* LPDAC0 for channel 0, LPDAC1 for channel 1	*/
 	.REG_AFE_LPDACDAT = REG_AFE_LPDACDAT0,		/* REG_AFE_LPDACDAT0 for channel 0, REG_AFE_LPDACDAT1 for channel 1	*/
-	.channel = 0,
 	.adcMuxN = ADCMUXN_LPTIA0_N,
   .adcMuxP = ADCMUXP_LPTIA0_P,
   .vPretreatment = -600,
   .secsPretreatment = 200,
-  .channel = 0,
+  .pstat = 0,
 };
 
 /**
@@ -291,6 +290,7 @@ AD5940Err AppSWVCtrl(uint32_t Command, void *pPara)
  * @brief Generate initialization sequence and write the commands to SRAM.
  * @return return error code.
 */
+
 static AD5940Err AppSWVSeqInitGen(void)
 {
   AD5940Err error = AD5940ERR_OK;
@@ -318,7 +318,18 @@ static AD5940Err AppSWVSeqInitGen(void)
   aferef_cfg.LpRefBufEn = bTRUE;
   aferef_cfg.LpRefBoostEn = bFALSE;
   AD5940_REFCfgS(&aferef_cfg);
-  
+
+  /* Select which channel to control */
+  // pstat == 0 means pstat 1, pstat == 1 means pstat 2.
+  // lploop_cfgB.LpAmpCfg.LpAmpSel = AppSWVCfg.LPAMP;
+  // if(AppSWVCfg.pstat == 0) {  
+	// 	lploop_cfgB.LpAmpCfg.LpTiaSW=0x108;				
+	// 	AD5940_LPAMPCfgS(&(lploop_cfgB.LpAmpCfg));	
+  // } else  {
+	// 	lploop_cfgB.LpAmpCfg.LpTiaSW=0x108;				
+	// 	AD5940_LPAMPCfgS(&(lploop_cfgB.LpAmpCfg));			
+  // }
+	
   lploop_cfg.LpAmpCfg.LpAmpSel = AppSWVCfg.LPAMP;
   // comment out (Hui)
   // lploop_cfg.LpAmpCfg.LpAmpSel = LPAMP0;
@@ -501,6 +512,8 @@ static AD5940Err RampDacRegUpdate(uint32_t *pDACData, uint8_t bFinal)
   VzeroCode = AppSWVCfg.CurrVzeroCode;
   VbiasCode = (uint32_t)(VzeroCode*64 + AppSWVCfg.CurrRampCode);
   // test don't change with bFinal
+  // Hui find out if add this bFinal, ending curve have a dip.
+  // Soo we shouldn't include it.
   // if(bFinal) {
 	// 	VbiasCode = (uint32_t)(VzeroCode*64);
 	// } else {
@@ -622,20 +635,11 @@ static AD5940Err AppSWVSeqDACCtrlGen(void)
     SeqCmdBuff[3] = SEQ_SLP();
     AD5940_SEQCmdWrite(CurrAddr, SeqCmdBuff, SEQLEN_ONESTEP);
     CurrAddr += SEQLEN_ONESTEP;
-
-    // if (AppSWVCfg.channel == 0) {
-    //   SeqCmdBuff[0] = SEQ_WR(REG_AFE_LPDACCON0, 0);
-    // } else {
-    //   SeqCmdBuff[0] = SEQ_WR(REG_AFE_LPDACDAT0, 0);
-    // }
-    
-    // SeqCmdBuff[0] = SEQ_WR(REG_AFE_LPDACCON0, 2);
-    // SeqCmdBuff[1] = SEQ_WR(REG_AFE_LPDACCON1, 2);
-
-    SeqCmdBuff[0] = SEQ_NOP();
-    SeqCmdBuff[1] = SEQ_NOP();
-   
-    // SeqCmdBuff[1] = SEQ_WR(REG_AFE_LPDACDAT1, 0);
+    /* The final final command is to disable sequencer. */
+  //  SeqCmdBuff[0] = SEQ_NOP();    /* Do nothing */
+  //  SeqCmdBuff[1] = SEQ_NOP();
+    SeqCmdBuff[0] = SEQ_WR(REG_AFE_LPTIASW0,  0);
+    SeqCmdBuff[1] = SEQ_WR(REG_AFE_LPTIASW1,  0);
     SeqCmdBuff[2] = SEQ_NOP();
     SeqCmdBuff[3] = SEQ_STOP();   /* Stop sequencer. */
     /* Disable sequencer, END of sequencer interrupt is generated. */

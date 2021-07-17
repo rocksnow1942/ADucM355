@@ -78,7 +78,7 @@ typedef struct
 	uint8_t adcMuxP;
   int32_t vPretreatment;
   int32_t secsPretreatment;
-  uint8_t channel; /*For store potentiostat channel*/
+  uint8_t pstat; /*For store potentiostat channel*/
 }AppSWVCfg_Type;
 
 #define APPCTRL_START          0

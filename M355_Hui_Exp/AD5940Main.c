@@ -10,31 +10,38 @@
 #include "DioLib.h"
 #include "IntLib.h"
 #include "cJSON.h"
+#include "math.h"
 
+/* Version History
+v2.0.8 working version, with ps1 and ps2 both working.
+v2.0.9 test remove temmperature check routine.
+*/
+#define FMWARE_VERSION "2.0.9"
 
+//#define FIFO_THRESHOLD	16	
 #define APPBUFF_SIZE 1024
 uint32_t AppBuff[APPBUFF_SIZE];
-
+volatile uint8_t resultSent = 0;
 float LFOSCFreq;    /* Measured LFOSC frequency */
 
 
 int UNDEFINED = -99999; // random out-of-bounds number for checking if key is there
 
 
-volatile unsigned char ucCOMSTA0 = 0;         // Variable used to store COMSTA0, UART status register
-volatile unsigned char ucCOMIID0 = 0;         // Variable used to store COMIID0, UART Interrupt status register
-volatile unsigned char ucComRx = 0;           // Variable used to read UART Rx buffer contents into
-unsigned char ucTxBufferEmpty  = 0;	       		// Used to indicate that the UART Tx buffer is empty
-unsigned char szTemp[64] = "";		       			// Used to build string before printing to UART
-char buffer[64] = "";	       									// Used to acquire incoming string from the UART
-unsigned char ucPacketReceived = 0;           // Flag to indicate UART byte received
-unsigned char ucInCnt = 0;                    // Used to count incoming bytes over the UART
-int iNumBytesInFifo = 0;                      // Used to determine the number of bytes in the UART FIFO
+//volatile unsigned char ucCOMSTA0 = 0;         // Variable used to store COMSTA0, UART status register
 
 char recvString[256] = "";	// Received string from UART
 uint8_t stringReceived = 0;			// Flag to indiciate if a string has been received
 uint8_t iForwardFlag = 0;
 uint8_t iReverseFlag = 0;
+
+uint8_t firstCommandRecv = 0;
+uint8_t pinState =  0;
+uint8_t pinEnable =  0;
+int counter = 0;
+
+
+
 
 /* All available resistor values for RTIA tuning. The index is the number which chooses the values according to ad5940.h */
 int RTIAvals[] = {0,200,1000,2000,3000,4000,6000,8000,10000,12000,16000,20000,24000,30000,32000,40000,48000,64000,85000,96000,100000,
@@ -43,10 +50,10 @@ int RTIAvals[] = {0,200,1000,2000,3000,4000,6000,8000,10000,12000,16000,20000,24
 	* @brief Compute the best RTIA value for the given maximum current
 	* @param maxCurrent: uA of peak-to-peak current we will expect at maximum. Usually less than 50uA
 	* @return return RTIA index
-									
+    the unit of maxCurrent is uA.
 */
 int getRTIA(float maxCurrent){
-	int32_t idealResistor = (int32_t)(0.9f/maxCurrent);
+	int32_t idealResistor = (int32_t)(9e5f/maxCurrent);
 	int32_t currentDiff = idealResistor-RTIAvals[0];
 	int i = 1, j=0;
 	int32_t nextDiff = idealResistor-RTIAvals[i];
@@ -67,98 +74,40 @@ int getRTIA(float maxCurrent){
 	return j;
 }
 
+
 /**
 	* @brief Print the SWV scan data through UART in JSON format
 	* @param pData: the buffer stored data for this application. The data from FIFO has been pre-processed.
 	* @param DataCount: The available data count in buffer pData.
 	* @return return 0.
 */
-static int32_t uartPrint(float *pData, uint32_t DataCount)
+static void uartPrint(float *pData, uint32_t DataCount)
 {
-	if( DataCount <= 2){
-		return 0;
-	}
-	AppSWVCfg_Type *pRampCfg;
-  AppSWVGetCfg(&pRampCfg);
-
-  /* Data Prep */
-	float forward,reverse,subtract;
-	float forwardData[DataCount/2];
-	float reverseData[DataCount/2];
-	float subtractData[DataCount/2];
-
-	int index = 0;
-	for(int i=0;i<DataCount;i+=2)
-	{
-		
-		forward = pData[i];
-		reverse = pData[i+1];
-		subtract = -1.0 * (forward-reverse);
-		forwardData[index] = forward;
-		reverseData[index] = reverse;
-		subtractData[index] = subtract;
-		index++;
-	}
-	
-	/* Print data as JSON : Honestly quicker just printing than dealing with json encoding */
-	int vIncrement = -1.0 * pRampCfg->SqrWvRampIncrement;
-	int vStart = -1.0 * (pRampCfg->RampStartVolt + pRampCfg->SqrWvAmplitude);
-	int vEnd = -1.0 * (pRampCfg->RampPeakVolt + pRampCfg->SqrWvAmplitude);
-	printf("{");
-	// printf("\"vUnit\":1E-3,");
-	// printf("\"vStart\":%d,", vStart);
-	// printf("\"vEnd\":%d,", vEnd);
-	// printf("\"vIncrement\":%d,", vIncrement);
-	// printf("\"iScale\":1E-6,");
-	
-	/* Forward Current */
-	
-	if(iForwardFlag){
-		printf("\"f\":[");
-		for(int i=0;i<index;i++)
-		{
-			if(i!=index-1){
-				printf("%.3f,", forwardData[i]);
-			}
-			else{
-				printf("%.3f", forwardData[i]);
-			}
+	int i;
+	if( DataCount >= 2){
+		printf("{");
+		/* Forward Current */
+		if(iForwardFlag){
+			printf("\"f\":[");
+			for(i=0;i< (DataCount/2 - 1);i++)
+				printf("%.3f,", pData[i * 2]);			
+			printf("%.3f],", pData[i * 2]);		
 		}
-		printf("],");
-	}
-	
-	
-	/* Reverse Current */	
-	if(iReverseFlag){
-		printf("\"r\":[");
-		for(int i=0;i<index;i++)
-		{
-			if(i!=index-1){
-				printf("%.3f,",reverseData[i]);
-			}
-			else{
-				printf("%.3f",reverseData[i]);
-			}
 			
+		/* Reverse Current */	
+		if(iReverseFlag){
+			printf("\"r\":[");
+			for(i=0;i< (DataCount/2 - 1);i++)
+				printf("%.3f,", pData[i * 2 + 1]);
+			printf("%.3f],", pData[i * 2 + 1]);			
 		}
-		printf("],");
+
+		/* Subtracted Current */
+		printf("\"c\":[");
+		for(i=0;i<(DataCount/2 - 1);i++)
+			printf("%.3f,", pData[i * 2 + 1] - pData[i * 2]);
+		printf("%.3f]}*", pData[i * 2 + 1] - pData[i * 2]);	
 	}
-	
-	
-	/* Subtracted Current */
-	printf("\"c\":[");
-  for(int i=0;i<index;i++)
-  {
-		if(i!=index-1){
-			printf("%.3f,",subtractData[i]);
-		}
-		else{
-			printf("%.3f",subtractData[i]);
-		}
-  }
-	printf("]");
-	printf("}*");
-  return 0;
 }
 
 /**
@@ -205,8 +154,9 @@ void setSelect1(uint8_t value){
 Turn LED to a state. Use a bit mask, RGB order
 bit positions are 0 , 3, 4, 
 currently, 0 is R, 3 is Blue, 4 is Green
+
 */
-void trunLED(uint8_t state){
+void turnLED(uint8_t state){
 	DioSetPin(pADI_GPIO1,(PIN0|PIN3) & state );
 	DioSetPin(pADI_GPIO2,PIN4 & state );
 	DioClrPin(pADI_GPIO1,(PIN0|PIN3) ^ state);
@@ -303,7 +253,7 @@ static int32_t AD5940PlatformCfg(void)
  * @brief The interface for user to change application paramters.
  * @return return 0.
 */
-void AD5940RampStructInit(float vStart, float vEnd, float vIncrement, float vAmplitude, float frequency, float maxCurrent, uint8_t channel,int32_t vPretreatment,int32_t secsPretreatment)
+void AD5940RampStructInit(float vStart, float vEnd, float vIncrement, float vAmplitude, float frequency, float maxCurrent, uint8_t pstat,int32_t vPretreatment,int32_t secsPretreatment)
 {
   AppSWVCfg_Type *pRampCfg;
   
@@ -349,8 +299,8 @@ void AD5940RampStructInit(float vStart, float vEnd, float vIncrement, float vAmp
 	pRampCfg->AdcPgaGain = ADCPGA_1P5;
 	pRampCfg->vPretreatment = vPretreatment;
 	pRampCfg->secsPretreatment = secsPretreatment;
-	pRampCfg->channel = channel;
-	if(channel==1){
+	pRampCfg->pstat = pstat;
+	if(pstat==1){
 		//printf("Channel 0\n");
 		pRampCfg->LPAMP = LPAMP1;
 		pRampCfg->LPDAC = LPDAC1;
@@ -363,7 +313,7 @@ void AD5940RampStructInit(float vStart, float vEnd, float vIncrement, float vAmp
 		pRampCfg->LPDAC = LPDAC0;
 		pRampCfg->REG_AFE_LPDACDAT=REG_AFE_LPDACDAT0;
 		pRampCfg->adcMuxN=ADCMUXN_LPTIA0_N;
-		pRampCfg->adcMuxP=ADCMUXP_LPTIA0_P;
+		pRampCfg->adcMuxP=ADCMUXP_LPTIA0_P;		
 	}
 	pRampCfg->bParaChanged = bTRUE;
 }
@@ -378,28 +328,25 @@ void delay (int time)
 }
 
 
-/* Given UART handler didn't work so I frankensteined it until it did. If UART is acting funny, look here */
+
 void UART_Int_Handler()
 {
-	int i = 0;
-
-	ucCOMSTA0 = UrtLinSta(pADI_UART0);
-	ucCOMIID0 = UrtIntSta(pADI_UART0);
+	static volatile  uint16_t IID = 0;         // Variable used to store COMIID0, UART Interrupt status register
+	static volatile  uint16_t ucComRx = 0;           // Variable used to read UART Rx buffer contents into
+	static volatile  uint16_t LStatus = 0;         // Variable used to store COMSTA0, UART status register
+	LStatus = UrtLinSta(pADI_UART0); //pPort->COMLSR;
+	IID = UrtIntSta(pADI_UART0); // pPort->COMIIR
 	//  ucCOMIID0 = pADI_UART0->COMIIR;
-	if ((ucCOMIID0 & 0xE) == 0x2)	          // Transmit buffer empty
-	{
-		ucTxBufferEmpty = 1;
-	}
-	if ((ucCOMIID0 & 0xE) == 0x4)	          // Receive byte
-	{
-		iNumBytesInFifo = pADI_UART0->COMRFC;    // read the Num of bytes in FIFO
-		for (i=0; i<iNumBytesInFifo;i++)
+	
+	if (((IID & 0xE) == 0x4) || ((IID & 0xE) == 0xC)) 
+	//0x4receie buffer full interrupt, 0xc is Receive FIFO timeout
+	{   
+		// read the Num of bytes in FIFO; pADI_UART0->COMRFC is the number of bytes in FIFO
+		for (int i=0; i < pADI_UART0->COMRFC ;i++)
 		{
-			ucComRx = UrtRx(pADI_UART0);
-			char tempChar = (char) ucComRx;
-			if(tempChar == '*'){
-				//printf("%s\n",recvString);
-				//strcpy(recvString, "");
+			ucComRx = UrtRx(pADI_UART0); // pPort->COMRX&0xff;
+			char tempChar = (char) ucComRx;			
+			if(tempChar == '*'){				
 				stringReceived = 1;
 				break;
 			}
@@ -409,73 +356,34 @@ void UART_Int_Handler()
 			else{
 				strncat(recvString, &tempChar, 1);
 			}
-			
 		}
-	}
-	if ((ucCOMIID0 & 0xE) == 0xC)	          // UART Time-out condition
-	{
-		iNumBytesInFifo = pADI_UART0->COMRFC;    // read the Num of bytes in FIFO
-		for (i=0; i<iNumBytesInFifo;i++)
-		{
-			ucComRx = UrtRx(pADI_UART0);
-			char tempChar = (char) ucComRx;
-			if(tempChar == '*'){
-				//printf("%s\n",recvString);
-				//strcpy(recvString, "");
-				stringReceived = 1;
-				break;
-			}
-			else if (tempChar == '\n'){
-				continue;
-			}
-			else
-			{
-				strncat(recvString, &tempChar, 1);
-			}
-		}
-	}
+	} 
+	
 }
 
-
-
-/**
-Run the board QC sequence.
+/*
+calculate the resistance from appBuff.
+Assuming fixed scan protocoland voltage range.
 */
-void BoardQCProcess(void) {
-uint8_t s = 0;
-while(isChipInserted()) {
-	trunLED(s);
-	s+=1;
-	delay(20);
-	if (s>252) {
-		break;
+float calcResistor(float *pData,uint32_t DataCount) {
+	float resistance = 0.0;
+	for (int i=0; i<DataCount; i+=2) {
+		resistance += (-800.0f + 25.0f * i) / pData[i] ;
+		resistance += (-700.0f + 25.0f * i) / pData[i + 1] ;
 	}
+	resistance /= DataCount;
+	return resistance;
 }
-}
+
 
 /*Run a SWV measurement*/
 void SWVMeasure(float vStart, float vEnd, float vIncrement, float vAmplitude,\
-	float frequency, float maxCurrent, uint8_t channel,\
-	int32_t vPretreatment,int32_t secsPretreatment,uint8_t muxSelect) {
-	AD5940RampStructInit(vStart,vEnd,vIncrement,vAmplitude,frequency,maxCurrent,channel,vPretreatment,secsPretreatment); // Initialize the SWV values				
-	AD5940_TemperatureInit();
-	AD5940_WUPTCtrl(bTRUE);
-	
-	while(1){
-		/* Check if interrupt flag which will be set when interrupt occured. */
-		if(AD5940_GetMCUIntFlag()){
-			AD5940_ClrMCUIntFlag(); /* Clear this flag */
-			AD5940_TemperatureInit();
-			AD5940_TemperatureISR();
-			AD5940_WUPTCtrl(bFALSE);
-			// this print temperature seems to be unecessary.
-			// AD5940_PrintTemperatureResult();
-			break;
-		}					
-	}
-	
+	float frequency, float maxCurrent, uint8_t pstat,\
+	int32_t vPretreatment,int32_t secsPretreatment,uint8_t channel) {
 	// always Set MUX pins				
-	setSelectPins(muxSelect);					
+	setSelectPins(channel);	
+	
+	AD5940RampStructInit(vStart,vEnd,vIncrement,vAmplitude,frequency,maxCurrent,pstat,vPretreatment,secsPretreatment); // Initialize the SWV values				
 	
 	AppSWVInit(AppBuff, APPBUFF_SIZE);    /* Initialize RAMP application. Provide a buffer, which is used to store sequencer commands */
 	
@@ -483,10 +391,58 @@ void SWVMeasure(float vStart, float vEnd, float vIncrement, float vAmplitude,\
 }
 
 
-uint8_t firstCommandRecv = 0;
-uint8_t pinState =  0;
-uint8_t pinEnable =  0;
-int counter = 0;
+/**
+Run the board QC sequence.
+*/
+void BoardQCProcess(void) {
+	// resistor orders are : C1-C4 and MeasureResisotr -> Fluid Fill Resistor
+	// in kOhm
+	float QCResistors[8] ={10.0,47.0,22.0,10.0,33.0,22.0,47.0,33.0}; 
+	float R;
+	uint32_t dataCount;
+	uint8_t errorFound=0;
+	
+	for (int i=0; i<8;i++) {
+		
+		turnLED(0); // turn on LED
+		SWVMeasure(-800.0,-400.0,50.0,100,100,100,i%2,0,0,i / 2);		
+		while(!AD5940_GetMCUIntFlag());
+		turnLED(0x19); // turn off led when measure is done
+		if(AD5940_GetMCUIntFlag())
+		{
+			AD5940_ClrMCUIntFlag();
+			dataCount = APPBUFF_SIZE;
+			AppSWVISR(AppBuff, &dataCount);
+			// uartPrint((float*)AppBuff, dataCount);
+			R = calcResistor((float*)AppBuff, dataCount);
+			printf("Channel %d R%d = %.3f < %f\n",i/2,i,R,QCResistors[i]);
+			if(fabs(R - QCResistors[i]) / QCResistors[i]  > 0.1) { 
+				errorFound += 1;
+			}
+			delay(200);
+		}
+		
+		
+	}
+	turnLED(0x19); // turn off the LED
+	while (isChipInserted()) {
+		if (errorFound) {			
+			turnLED(pinState);
+			pinState ^= 0x19;
+			delay(500);
+		} else {
+			turnLED(0); // turn on LED and exit
+			break;
+		}
+	}
+	
+	
+
+}
+
+
+
+
 
 /**
 	* @brief Main code which waits for UART, scans temperature, runs SWV with UART JSON parameters, and then outputs the data
@@ -504,7 +460,10 @@ void AD5940_Main(void)
 	AD5940PlatformCfg(); 
 	AD5940_ClrMCUIntFlag();
 
-	BoardQCProcess();
+	BoardQCProcess(); 
+	// turn on board LED on:
+	// DioSetPin(pADI_GPIO0, PIN5);
+
 	while(1)
 	{
 		if(AD5940_GetMCUIntFlag())
@@ -512,21 +471,20 @@ void AD5940_Main(void)
 			AD5940_ClrMCUIntFlag();
 			temp = APPBUFF_SIZE;
 			AppSWVISR(AppBuff, &temp);
-			uartPrint((float*)AppBuff, temp);
-		}
+			uartPrint((float*)AppBuff, temp);			
+		} 
 
 		// if hasn't receive any command, swith the GPIO0 on and off.
-		if (!firstCommandRecv) {
-			counter += 1;
-			if( counter % 200 == 0) 
-				{
-					trunLED(pinState);
-					pinState ^=0x19;
-					counter = 0;
-				}			
-			delay(5);
-		}
-		
+		// if (!firstCommandRecv) {
+		// 	counter += 1;
+		// 	if( counter % 200 == 0) 
+		// 		{
+		// 			turnLED(pinState);
+		// 			pinState ^=0x19;
+		// 			counter = 0;
+		// 		}			
+		// 	delay(5);
+		// }
 		
 		
 		if (stringReceived == 1) // any received string will rerun the code ... for now
@@ -538,17 +496,22 @@ void AD5940_Main(void)
 			// if(recvString[(strlen(recvString)-1)] != '}'){
 			// 	strncat(recvString, "}", 1);
 			// }
+			 
 			
 			cJSON *json = cJSON_Parse(recvString);
 			cJSON *temp;
 			strcpy(recvString, "");
+			
 
 			// if received LED, 
 			temp = cJSON_GetObjectItemCaseSensitive(json, "led");
 			float led = temp ? temp->valuedouble : UNDEFINED;
 			if (led!=UNDEFINED) {
-				trunLED(pinState);
+				turnLED(pinState);
+				DioSetPin(pADI_GPIO0, PIN5 & (pinState << 1));
+				DioClrPin(pADI_GPIO0, PIN5 ^ (pinState << 1));
 				pinState ^=0x19;
+				
 			}
 
 			temp = cJSON_GetObjectItemCaseSensitive(json, "ledoff");
@@ -557,8 +520,7 @@ void AD5940_Main(void)
 				DioOenPin(pADI_GPIO1,PIN2,pinEnable);			// toggle enable disable pin
 				pinEnable ^=1;
 			}
-			
-			
+
 			// s key for checking status
 			temp = cJSON_GetObjectItemCaseSensitive(json, "s"); // expecting the string {"s":1}* as the check to see if the ADuCM355 is connected, and will return the same json
 			int status = temp ? temp->valueint : UNDEFINED;
@@ -585,7 +547,7 @@ void AD5940_Main(void)
 				}
 			}
 			else if (version != UNDEFINED) {
-				printf("{\"v\":\"2.0.8\"}*");
+				printf("{\"v\":\"%s\"}*",FMWARE_VERSION);				
 			}
 			else if (vStart != UNDEFINED) {
 	
@@ -608,18 +570,18 @@ void AD5940_Main(void)
 								
 				// current Scale (or max expected current)
 				temp = cJSON_GetObjectItemCaseSensitive(json, "iS");
-				float maxCurrent = temp ? temp->valuedouble * 1e-6f : UNDEFINED;
+				float maxCurrent = temp ? temp->valuedouble : UNDEFINED;
 				
 				// whether return forward current or not
 				temp = cJSON_GetObjectItemCaseSensitive(json, "f");
-				iForwardFlag = temp ? (uint8_t) (temp->valueint) : UNDEFINED;
+				iForwardFlag = temp ? (uint8_t) (temp->valueint) : 0;
 				
 				temp = cJSON_GetObjectItemCaseSensitive(json, "r");
-				iReverseFlag = temp ? (uint8_t) (temp->valueint) : UNDEFINED;
+				iReverseFlag = temp ? (uint8_t) (temp->valueint) : 0;
 				
 				// ps = 0 to use potentiostat 0, ps = 1 to use potentiostat 1
 				temp = cJSON_GetObjectItemCaseSensitive(json, "ps");
-				uint8_t channel = temp ? (uint8_t) (temp->valueint) : 0;
+				uint8_t pstat = temp ? (uint8_t) (temp->valueint) : 0;
 				
 				// pretreatment voltage in mV
 				temp = cJSON_GetObjectItemCaseSensitive(json, "vP");
@@ -630,12 +592,13 @@ void AD5940_Main(void)
 				
 				// select channel 0-3 to set corresonding mux select pins
 				temp = cJSON_GetObjectItemCaseSensitive(json, "ch"); // expecting the string {"setMuxSelect":0-3}* to set the MUX select pins, and will return the same json
-				uint8_t muxSelect = temp ? (uint8_t)(temp->valueint): 0;
+				uint8_t channel = temp ? (uint8_t)(temp->valueint): 0;
 				
 				SWVMeasure( vStart,  vEnd,  vIncrement,  vAmplitude,\
-							frequency,  maxCurrent,  channel,\
-							vPretreatment, secsPretreatment, muxSelect);
-				
+							frequency,  maxCurrent,  pstat,\
+							vPretreatment, secsPretreatment, channel);		
+
+					
 			}
 			else {
 				// error

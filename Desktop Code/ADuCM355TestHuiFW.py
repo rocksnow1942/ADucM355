@@ -5,6 +5,28 @@ import matplotlib.pyplot as plt
 import time
 import numpy as np
 
+def measure(para):
+    t0 = time.perf_counter()
+    res = m.json(para)
+    print(f'Measure take {time.perf_counter() - t0:.2f}s')
+    print(f"Avergage current {np.array(res['c']).mean():.4f}uA")
+    return res,para
+    
+def plotRes(R):
+    res,para = R
+    f = np.array( res.get('f',[]))
+    r = np.array(res.get('r',[]))
+    c = np.array(res['c'])
+    v = np.linspace(para['vS'],para['vE'],len(c))
+    s=0
+    fig,ax = plt.subplots()
+    ax.plot(v[s:len(f)],f[s:],label='forward')
+    ax.plot(v[s:len(f)],r[s:],label='reverse')
+    ax.plot(v[s:],c[s:],label='delta')
+    ax.legend()
+    
+    plt.tight_layout()
+
 def findComPort():
     """
     Finds the communication port for the M355
@@ -58,6 +80,16 @@ class M355:
 
 m = M355(findComPort())
 
+rr = m.read()
+
+m.read().decode(errors='ignore')
+
+print(rr.decode(errors='ignore'))
+
+
+rr = m.read()
+rr.decode().split('*')
+
 
 
 # send status query, should respond with {status:1}
@@ -69,22 +101,73 @@ print(m.json({'led':0},0.1))
 
 
 
-para=dict(
-vScale=1e-3, #mV
-vStart=-600,
-vEnd=0,
-vIncrement=5,
-vAmplitude=100,
-freqHz=100,
-iScale=.000001, #uA
-maxCurrent=100, #uA
-vPretreatment=0,
-secsPretreatment=0,
-iForwardRecv=1, # flag for forward current
-iReverseRecv=1,
-muxSelect= 3,      #   mux select pins (0-3)
-channel = 1
-)  
+res,para = measure(( dict(
+vS= -800,
+vE= -400,
+vI=50,
+vA=100,
+Hz=100,
+iS=100, #uA
+vP=0,
+tP=0,
+f=1, # flag for forward current
+r=1,
+ch= 0,     #   mux select pins (0-3)
+ps = 0,
+) # flag for forward current
+
+))
+
+plotRes((res,para)) 
+print( f"Resistance {(np.arange(-800,-401,50) / np.array(res['f'])).mean()}" )
+
+
+
+cmd = m.encode({'runqc':1})
+
+ffpara = dict(
+vS= -800,
+vE= -400,
+vI=50,
+vA=100,
+Hz=100,
+iS=100, #uA
+vP=0,
+tP=0,
+f=1, # flag for forward current
+r=1,
+ch= 0,     #   mux select pins (0-3)
+ps = 0,
+)
+
+cmd = m.encode(ffpara)
+
+
+for i in range(8):
+    ffpara['ch'] = i // 2
+    ffpara['ps'] = i % 2
+    cmd = m.encode(ffpara)
+    m.write(cmd)
+    time.sleep(1)
+    
+m.write(cmd)
+
+res = m.read()
+
+len(res)
+
+print(res.decode())
+
+res.decode().split('*')
+
+res.decode().split('*')
+
+data = json.loads(res.decode().split('*')[1])
+
+plt.plot(np.linspace(-800,-400,8),data['f'])
+
+m.read()
+
 
 
 # run 1 scan on potentiostat 2 first

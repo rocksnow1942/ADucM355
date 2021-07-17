@@ -10,8 +10,15 @@
 #include "DioLib.h"
 #include "IntLib.h"
 #include "cJSON.h"
+#include "math.h"
 
+/* Version History
+v2.0.8 working version, with ps1 and ps2 both working.
+v2.0.9 test remove temmperature check routine.
+*/
+#define FMWARE_VERSION "2.0.9"
 
+//#define FIFO_THRESHOLD	16	
 #define APPBUFF_SIZE 1024
 uint32_t AppBuff[APPBUFF_SIZE];
 
@@ -33,8 +40,8 @@ int iNumBytesInFifo = 0;                      // Used to determine the number of
 
 char recvString[256] = "";	// Received string from UART
 uint8_t stringReceived = 0;			// Flag to indiciate if a string has been received
-uint8_t iForwardFlag = 0;
-uint8_t iReverseFlag = 0;
+uint8_t iForwardFlag = 1;
+uint8_t iReverseFlag = 1;
 
 /* All available resistor values for RTIA tuning. The index is the number which chooses the values according to ad5940.h */
 int RTIAvals[] = {0,200,1000,2000,3000,4000,6000,8000,10000,12000,16000,20000,24000,30000,32000,40000,48000,64000,85000,96000,100000,
@@ -78,15 +85,12 @@ static int32_t uartPrint(float *pData, uint32_t DataCount)
 	if( DataCount <= 2){
 		return 0;
 	}
-	AppSWVCfg_Type *pRampCfg;
-  AppSWVGetCfg(&pRampCfg);
 
   /* Data Prep */
 	float forward,reverse,subtract;
 	float forwardData[DataCount/2];
 	float reverseData[DataCount/2];
 	float subtractData[DataCount/2];
-
 	int index = 0;
 	for(int i=0;i<DataCount;i+=2)
 	{
@@ -100,16 +104,8 @@ static int32_t uartPrint(float *pData, uint32_t DataCount)
 		index++;
 	}
 	
-	/* Print data as JSON : Honestly quicker just printing than dealing with json encoding */
-	int vIncrement = -1.0 * pRampCfg->SqrWvRampIncrement;
-	int vStart = -1.0 * (pRampCfg->RampStartVolt + pRampCfg->SqrWvAmplitude);
-	int vEnd = -1.0 * (pRampCfg->RampPeakVolt + pRampCfg->SqrWvAmplitude);
+
 	printf("{");
-	// printf("\"vUnit\":1E-3,");
-	// printf("\"vStart\":%d,", vStart);
-	// printf("\"vEnd\":%d,", vEnd);
-	// printf("\"vIncrement\":%d,", vIncrement);
-	// printf("\"iScale\":1E-6,");
 	
 	/* Forward Current */
 	
@@ -436,51 +432,74 @@ void UART_Int_Handler()
 	}
 }
 
+/*
+calculate the resistance from appBuff.
+Assuming fixed scan protocoland voltage range.
+*/
+float calcResistor(float *pData,uint32_t DataCount) {
+	float resistance = 0.0;
+	for (int i=0; i<DataCount; i+=2) {
+		resistance += (-800.0f + 25.0f * i) / pData[i] ;
+		resistance += (-700.0f + 25.0f * i) / pData[i + 1] ;
+	}
+	resistance /= DataCount;
+	return resistance;
+}
+
+
+/*Run a SWV measurement*/
+void SWVMeasure(float vStart, float vEnd, float vIncrement, float vAmplitude,\
+	float frequency, float maxCurrent, uint8_t pstat,\
+	int32_t vPretreatment,int32_t secsPretreatment,uint8_t channel) {
+	// always Set MUX pins				
+	setSelectPins(channel);	
+	delay(5);
+
+	AD5940RampStructInit(vStart,vEnd,vIncrement,vAmplitude,frequency,maxCurrent,pstat,vPretreatment,secsPretreatment); // Initialize the SWV values				
+	
+	AppSWVInit(AppBuff, APPBUFF_SIZE);    /* Initialize RAMP application. Provide a buffer, which is used to store sequencer commands */
+	
+	AppSWVCtrl(APPCTRL_START, 0);          /* Control IMP measurement to start. Second parameter has no meaning with this command. */
+}
 
 
 /**
 Run the board QC sequence.
 */
 void BoardQCProcess(void) {
-uint8_t s = 0;
-while(isChipInserted()) {
-	trunLED(s);
-	s+=1;
-	delay(20);
-	if (s>252) {
-		break;
+	// resistor orders are : C1-C4 and MeasureResisotr -> Fluid Fill Resistor
+	// in kOhm
+	float QCResistors[8] ={10.0,15.0,22.0,25.0,33.0,35.0,47.0,50.0}; 
+	float R;
+	uint32_t dataCount;
+	for (int i=0; i<8;i++) {
+		SWVMeasure(-800,-400,50,100,100,100,i%2,0,0,i / 2);
+		delay(1000);
+		while(!AD5940_GetMCUIntFlag()) {
+			printf("waiting flag");
+		};
+		if(AD5940_GetMCUIntFlag())
+		{
+			AD5940_ClrMCUIntFlag();
+			dataCount = APPBUFF_SIZE;
+			AppSWVISR(AppBuff, &dataCount);			
+			R = calcResistor((float*)AppBuff, dataCount);
+			printf("Channel %d R%d = %.3f < %f\n",i/2,i,R,QCResistors[i]);
+			if(fabs(R - QCResistors[i]) / QCResistors[i]  > 0.1) { 
+				printf("Error \n");
+			}
+		} 
+		delay(3000);
+		
+	} 
+
+	if (isChipInserted()) {
+		// if chis is inserted, then display error LED status
+		printf("Error LED status should be displayed\n");
 	}
-}
+
 }
 
-/*Run a SWV measurement*/
-void SWVMeasure(float vStart, float vEnd, float vIncrement, float vAmplitude,\
-	float frequency, float maxCurrent, uint8_t pstat,\
-	int32_t vPretreatment,int32_t secsPretreatment,uint8_t channel) {
-	AD5940RampStructInit(vStart,vEnd,vIncrement,vAmplitude,frequency,maxCurrent,pstat,vPretreatment,secsPretreatment); // Initialize the SWV values				
-	AD5940_TemperatureInit();
-	AD5940_WUPTCtrl(bTRUE);
-	
-	while(1){
-		/* Check if interrupt flag which will be set when interrupt occured. */
-		if(AD5940_GetMCUIntFlag()){
-			AD5940_ClrMCUIntFlag(); /* Clear this flag */
-			AD5940_TemperatureInit();
-			AD5940_TemperatureISR();
-			AD5940_WUPTCtrl(bFALSE);
-			// this print temperature seems to be unecessary.
-			// AD5940_PrintTemperatureResult();
-			break;
-		}					
-	}
-	
-	// always Set MUX pins				
-	setSelectPins(channel);					
-	
-	AppSWVInit(AppBuff, APPBUFF_SIZE);    /* Initialize RAMP application. Provide a buffer, which is used to store sequencer commands */
-	
-	AppSWVCtrl(APPCTRL_START, 0);          /* Control IMP measurement to start. Second parameter has no meaning with this command. */
-}
 
 
 uint8_t firstCommandRecv = 0;
@@ -504,7 +523,7 @@ void AD5940_Main(void)
 	AD5940PlatformCfg(); 
 	AD5940_ClrMCUIntFlag();
 
-	BoardQCProcess(); 
+	// BoardQCProcess(); 
 	// turn on board LED on:
 	DioSetPin(pADI_GPIO0, PIN5);
 
@@ -591,7 +610,7 @@ void AD5940_Main(void)
 				}
 			}
 			else if (version != UNDEFINED) {
-				printf("{\"v\":\"2.0.8\"}*");
+				printf("{\"v\":\"%s\"}*",FMWARE_VERSION);				
 			}
 			else if (vStart != UNDEFINED) {
 	
@@ -640,8 +659,7 @@ void AD5940_Main(void)
 				
 				SWVMeasure( vStart,  vEnd,  vIncrement,  vAmplitude,\
 							frequency,  maxCurrent,  pstat,\
-							vPretreatment, secsPretreatment, channel);
-				
+							vPretreatment, secsPretreatment, channel);				
 			}
 			else {
 				// error
