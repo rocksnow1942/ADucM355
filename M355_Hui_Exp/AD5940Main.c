@@ -16,7 +16,7 @@
 v2.0.8 working version, with ps1 and ps2 both working.
 v2.0.9 test remove temmperature check routine.
 */
-#define FMWARE_VERSION "2.0.9"
+#define FMWARE_VERSION "2.1.0"
 
 //#define FIFO_THRESHOLD	16
 #define APPBUFF_SIZE 1024
@@ -64,7 +64,7 @@ uint8_t getRTIA(float maxCurrent)
 	* @param iReverseFlag: whether to return reverse data. 0: no return 1:return reverse data
 	* @return return 0.
 */
-static void uartPrint(float *pData, uint32_t DataCount, uint8_t iForwardFlag, uint8_t iReversedFlag)
+static void uartPrint(float *pData, uint32_t DataCount, uint8_t iForwardFlag, uint8_t iReverseFlag)
 {
 	int i;
 	if (DataCount >= 2)
@@ -91,11 +91,7 @@ static void uartPrint(float *pData, uint32_t DataCount, uint8_t iForwardFlag, ui
 		for (i = 0; i < (DataCount / 2 - 1); i++)
 			printf("%.3f,", pData[i * 2 + 1] - pData[i * 2]);
 		printf("%.3f]}*", pData[i * 2 + 1] - pData[i * 2]);
-	}
-	else
-	{
-		printf("\"f\":[],\"r\":[],\"c\":[]");
-	}
+	}	
 }
 
 /**
@@ -392,7 +388,7 @@ static void ack(uint8_t i)
 	printf("{\"a\":%d}*", i);
 }
 
-void handleJson(cJSON *json)
+void handleJson(cJSON *json) //uint32_t * pDataCount
 {
 	cJSON *temp;
 	if (cJSON_GetObjectItemCaseSensitive(json, "led"))
@@ -424,17 +420,17 @@ void handleJson(cJSON *json)
 	else if (cJSON_GetObjectItemCaseSensitive(json, "vS"))
 	{
 		temp = cJSON_GetObjectItemCaseSensitive(json, "vS"); // Starting voltage is always in mV
-		float vStart = temp ? temp->valuedouble : -600f;
+		float vStart = temp ? temp->valuedouble : -600.0f;
 		temp = cJSON_GetObjectItemCaseSensitive(json, "vE"); // Ending voltage is always in mV
-		float vEnd = temp ? temp->valuedouble : 0f;
+		float vEnd = temp ? temp->valuedouble : 0.0f;
 		temp = cJSON_GetObjectItemCaseSensitive(json, "vI"); // Increment voltage
-		float vIncrement = temp ? temp->valuedouble : 5f;
+		float vIncrement = temp ? temp->valuedouble : 5.0f;
 		temp = cJSON_GetObjectItemCaseSensitive(json, "vA"); // Amplitude of voltage
-		float vAmplitude = temp ? temp->valuedouble : 100f;
+		float vAmplitude = temp ? temp->valuedouble : 100.0f;
 		temp = cJSON_GetObjectItemCaseSensitive(json, "Hz"); //frequency in Hz
-		float frequency = temp ? temp->valuedouble : 100f;
+		float frequency = temp ? temp->valuedouble : 100.0f;
 		temp = cJSON_GetObjectItemCaseSensitive(json, "iS"); //max expected current in uA
-		float maxCurrent = temp ? temp->valuedouble : 100f;
+		float maxCurrent = temp ? temp->valuedouble : 100.0f;
 		temp = cJSON_GetObjectItemCaseSensitive(json, "ps"); // which pstat to use, 0 or 1
 		uint8_t pstat = temp ? (uint8_t)(temp->valueint) : 0;
 		temp = cJSON_GetObjectItemCaseSensitive(json, "vP"); // pretreatment voltage in mV
@@ -444,27 +440,20 @@ void handleJson(cJSON *json)
 		temp = cJSON_GetObjectItemCaseSensitive(json, "ch"); // which channel to scan 0-3 for channel 1-4
 		uint8_t channel = temp ? (uint8_t)(temp->valueint) : 0;
 
-		SWVMeasure(vStart, vEnd, vIncrement, vAmplitude,
-				   frequency, maxCurrent, pstat,
-				   vPretreatment, secsPretreatment, channel);
-		// wait until the scan is started
-		while (!AD5940_GetMCUIntFlag())
-			;
-		// clear the MCU interrupt flag
-		AD5940_ClrMCUIntFlag();
-		// send data back to the client with UART
-		dataCount = APPBUFF_SIZE;
-		AppSWVISR(AppBuff, &dataCount);
 		temp = cJSON_GetObjectItemCaseSensitive(json, "f"); // wether to return forward current
 		uint8_t iForwardFlag = temp ? (uint8_t)(temp->valueint) : 0;
 		temp = cJSON_GetObjectItemCaseSensitive(json, "r"); // wether to return reverse current
 		uint8_t iReverseFlag = temp ? (uint8_t)(temp->valueint) : 0;
-		uartPrint((float *)AppBuff, dataCount, iForwardFlag, iReverseFlag);
+
+		SWVMeasure(vStart, vEnd, vIncrement, vAmplitude,
+				   frequency, maxCurrent, pstat,
+				   vPretreatment, secsPretreatment, channel);	
 	}
 	else
-	{
+	{			
 		// error, not a valid command
 		printf("{\"e\":1}*");
+		
 	}
 }
 
@@ -474,7 +463,7 @@ void handleJson(cJSON *json)
 */
 void AD5940_Main(void)
 {
-	uint8_t firstCommandRecv = 0;
+	uint8_t firstCommandRecv = 0;	
 	uint32_t dataCount;
 	strcpy(recvString, "");
 
@@ -486,7 +475,14 @@ void AD5940_Main(void)
 	// DioSetPin(pADI_GPIO0, PIN5);
 
 	while (1)
-	{
+	{	
+		if(AD5940_GetMCUIntFlag())
+		{
+			AD5940_ClrMCUIntFlag();
+			dataCount = APPBUFF_SIZE;
+			AppSWVISR(AppBuff, &dataCount);
+			uartPrint((float *)AppBuff, dataCount, 1,1);
+		}
 
 		// if hasn't receive any command, swith the GPIO0 on and off.
 		// if (!firstCommandRecv) {
@@ -510,12 +506,12 @@ void AD5940_Main(void)
 			if (json == NULL)
 			{
 				// error 0 in parsing JSON from string
-				printf("{\"e\":0}*");
+				printf("{\"e\":0}*");				
 			}
 			else
 			{
 				handleJson(json);
-			}
+			}			
 			cJSON_Delete(json);
 		}
 	}
