@@ -31,8 +31,6 @@ uint8_t pinEnable = 0;
 uint8_t iForwardFlag = 0;
 uint8_t iReverseFlag = 0;
 
-int counter = 0;
-
 /* All available resistor values for RTIA tuning. The index is the number which chooses the values according to ad5940.h */
 
 /**
@@ -469,15 +467,18 @@ void showStatusLED(uint8_t* status) {
 	} else {
 		// QC fail or have sensor inserted, then blick red
 		if (count % INTERVAL == 0) {			
-			ledState ^= 0x0;
+			ledState ^= 0x1;
 		}
 		// if chip is unplugged, then change status to blink white.
 		if (!isChipInserted()) {
-			ledState = 0x19;
+			ledState = 0x0;
 			*status = 10;
 		}
 	}
 	turnLED(ledState);
+	// let the onboard LED follow red-led
+	// so if not doing a QC or if QC fail, then onboard LED will blink, suggest a QC-incomplete.
+	turnBoardLED(ledState & 0x1);
 	count++;
 	if (count == 0xFFFFFFFE) {
 		count = 0;
