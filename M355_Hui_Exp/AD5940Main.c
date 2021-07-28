@@ -28,8 +28,8 @@ uint8_t stringReceived = 0; // Flag to indiciate if a string has been received
 uint8_t firstCommandRecv = 0;
 uint8_t pinState = 0;
 uint8_t pinEnable = 0;
-
-int counter = 0;
+uint8_t iForwardFlag = 0;
+uint8_t iReverseFlag = 0;
 
 /* All available resistor values for RTIA tuning. The index is the number which chooses the values according to ad5940.h */
 
@@ -64,7 +64,7 @@ uint8_t getRTIA(float maxCurrent)
 	* @param iReverseFlag: whether to return reverse data. 0: no return 1:return reverse data
 	* @return return 0.
 */
-static void uartPrint(float *pData, uint32_t DataCount, uint8_t iForwardFlag, uint8_t iReverseFlag)
+static void uartPrint(float *pData, uint32_t DataCount)
 {
 	int i;
 	if (DataCount >= 2)
@@ -120,6 +120,14 @@ void turnLED(uint8_t state)
 	DioSetPin(pADI_GPIO2, PIN4 & state);
 	DioClrPin(pADI_GPIO1, (PIN0 | PIN3) ^ state);
 	DioClrPin(pADI_GPIO2, PIN4 ^ state);
+}
+
+/*turn onboard LED on or off*/
+void turnBoardLED(uint8_t state) {
+	// DioSetPin(pADI_GPIO0, PIN5 & (state << 5));
+	// DioClrPin(pADI_GPIO0, PIN5 ^ (state << 5));
+	DioSetPin(pADI_GPIO2, PIN4 & (state << 4));
+	DioClrPin(pADI_GPIO2, PIN4 ^ (state << 4));
 }
 
 /**
@@ -334,8 +342,12 @@ float calcResistor(float *pData, uint32_t DataCount)
 
 /**
 Run the board QC sequence.
+return QC status.
+0: success; chip inserted and QC passed.
+1-8: fail; chip inserted but QC failed on 1-8 channels.
+10: default; chip not inserted.
 */
-void BoardQCProcess(void)
+uint8_t BoardQCProcess(void)
 {
 	// resistor orders are : C1-C4 and MeasureResisotr -> Fluid Fill Resistor
 	// in kOhm
@@ -345,11 +357,11 @@ void BoardQCProcess(void)
 	uint8_t errorFound = 0;
 	for (int i = 0; i < 8; i++)
 	{
-		turnLED(0); // turn on LED
+		turnBoardLED(1);; // turn off onbooard LED when measurement starts
 		SWVMeasure(-800.0, -400.0, 50.0, 100, 100, 100, i % 2, 0, 0, i / 2);
 		while (!AD5940_GetMCUIntFlag())
 			;
-		turnLED(0x19); // turn off led when measure is done
+		turnBoardLED(0); // turn on led when measure is done
 		if (AD5940_GetMCUIntFlag())
 		{
 			AD5940_ClrMCUIntFlag();
@@ -357,7 +369,7 @@ void BoardQCProcess(void)
 			AppSWVISR(AppBuff, &dataCount);
 			// uartPrint((float*)AppBuff, dataCount);
 			R = calcResistor((float *)AppBuff, dataCount);
-			printf("Channel %d R%d = %.3f < %f\n", i / 2, i, R, QCResistors[i]);
+			// printf("Channel %d R%d = %.3f < %f\n", i / 2, i, R, QCResistors[i]);
 			if (fabs(R - QCResistors[i]) / QCResistors[i] > 0.1)
 			{
 				errorFound += 1;
@@ -365,21 +377,11 @@ void BoardQCProcess(void)
 			delay(200);
 		}
 	}
-	turnLED(0x19); // turn off the LED
-	while (isChipInserted())
-	{
-		if (errorFound)
-		{
-			turnLED(pinState);
-			pinState ^= 0x19;
-			delay(500);
-		}
-		else
-		{
-			turnLED(0); // turn on LED and exit
-		}
-	}
-	turnLED(0x19); // turn off the LED
+	if (isChipInserted()) {
+		return errorFound;
+	} else { 
+		return 10;
+	}	
 }
 
 // send {a:0} to master
@@ -391,21 +393,8 @@ static void ack(uint8_t i)
 void handleJson(cJSON *json) //uint32_t * pDataCount
 {
 	cJSON *temp;
-	if (cJSON_GetObjectItemCaseSensitive(json, "led"))
-	{
-		turnLED(pinState);
-		DioSetPin(pADI_GPIO0, PIN5 & (pinState << 1));
-		DioClrPin(pADI_GPIO0, PIN5 ^ (pinState << 1));
-		pinState ^= 0x19;
-		ack(1);
-	}
-	else if (cJSON_GetObjectItemCaseSensitive(json, "ledoff"))
-	{
-		DioOenPin(pADI_GPIO1, PIN2, pinEnable); // toggle enable disable pin
-		pinEnable ^= 1;
-		ack(1);
-	}
-	else if (cJSON_GetObjectItemCaseSensitive(json, "s"))
+	
+	if (cJSON_GetObjectItemCaseSensitive(json, "s"))
 	{
 		ack(1);
 	}
@@ -441,9 +430,9 @@ void handleJson(cJSON *json) //uint32_t * pDataCount
 		uint8_t channel = temp ? (uint8_t)(temp->valueint) : 0;
 
 		temp = cJSON_GetObjectItemCaseSensitive(json, "f"); // wether to return forward current
-		uint8_t iForwardFlag = temp ? (uint8_t)(temp->valueint) : 0;
+		iForwardFlag = temp ? (uint8_t)(temp->valueint) : 0;
 		temp = cJSON_GetObjectItemCaseSensitive(json, "r"); // wether to return reverse current
-		uint8_t iReverseFlag = temp ? (uint8_t)(temp->valueint) : 0;
+		iReverseFlag = temp ? (uint8_t)(temp->valueint) : 0;
 
 		SWVMeasure(vStart, vEnd, vIncrement, vAmplitude,
 				   frequency, maxCurrent, pstat,
@@ -457,48 +446,96 @@ void handleJson(cJSON *json) //uint32_t * pDataCount
 	}
 }
 
+
+/*
+Depends on the board QC status, show different LED state
+*/
+#define INTERVAL 99999
+void showStatusLED(uint8_t* status) {
+	static uint8_t ledState = 0x19;
+	static uint32_t count = 0;	
+	if (*status == 0) { 
+		// QC success then blink green
+		if (count % INTERVAL == 0) {			
+			ledState ^= 0x10;
+		}
+	} else if (*status == 10) {
+		// not doing a QC, then blink white 
+		if (count % INTERVAL == 0) {			
+			ledState ^= 0x19;			
+		}
+	} else {
+		// QC fail or have sensor inserted, then blick red
+		if (count % INTERVAL == 0) {			
+			ledState ^= 0x0;
+		}
+		// if chip is unplugged, then change status to blink white.
+		if (!isChipInserted()) {
+			ledState = 0x19;
+			*status = 10;
+		}
+	}
+	turnLED(ledState);
+	count++;
+	if (count == 0xFFFFFFFE) {
+		count = 0;
+	}
+}
+
+
 /**
 	* @brief Main code which waits for UART, scans temperature, runs SWV with UART JSON parameters, and then outputs the data
 	* @return Infinite loop
 */
 void AD5940_Main(void)
-{
-	uint8_t firstCommandRecv = 0;	
+{	
 	uint32_t dataCount;
 	strcpy(recvString, "");
 
 	AD5940PlatformCfg();
 	AD5940_ClrMCUIntFlag();
-
-	BoardQCProcess();
+	
 	// turn on board LED on:
-	// DioSetPin(pADI_GPIO0, PIN5);
+	turnBoardLED(0);
+
+	uint8_t boardQC = BoardQCProcess();
+	
+	while (1) {
+		if (stringReceived==1) {
+			stringReceived = 0;
+			cJSON *json = cJSON_Parse(recvString);
+			strcpy(recvString, "");
+			if (cJSON_GetObjectItemCaseSensitive(json, "s")) {
+				ack(1);
+				// disable the RGB-LEDs
+				DioOenPin(pADI_GPIO1,PIN0|PIN3,0); 
+				DioOenPin(pADI_GPIO2,PIN4,0);
+				break;
+			}		
+		} else {
+			showStatusLED(&boardQC);
+		}		
+	}
+
+	// turn off board LED after first string received:
+	turnBoardLED(1);
 
 	while (1)
 	{	
 		if(AD5940_GetMCUIntFlag())
 		{
+			turnBoardLED(0);
 			AD5940_ClrMCUIntFlag();
 			dataCount = APPBUFF_SIZE;
 			AppSWVISR(AppBuff, &dataCount);
-			uartPrint((float *)AppBuff, dataCount, 1,1);
+			uartPrint((float *)AppBuff, dataCount);
+			turnBoardLED(1);
 		}
 
-		// if hasn't receive any command, swith the GPIO0 on and off.
-		// if (!firstCommandRecv) {
-		// 	counter += 1;
-		// 	if( counter % 200 == 0)
-		// 		{
-		// 			turnLED(pinState);
-		// 			pinState ^=0x19;
-		// 			counter = 0;
-		// 		}
-		// 	delay(5);
-		// }
-
 		if (stringReceived == 1) // any received string will rerun the code ... for now
-		{
-			firstCommandRecv = 1;
+		{	
+			// turn on board LED after received a command;
+			turnBoardLED(0);
 			stringReceived = 0;
 
 			cJSON *json = cJSON_Parse(recvString);
@@ -513,6 +550,7 @@ void AD5940_Main(void)
 				handleJson(json);
 			}			
 			cJSON_Delete(json);
+			turnBoardLED(1);
 		}
 	}
 }

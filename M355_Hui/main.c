@@ -61,11 +61,11 @@ void GPIOInit(void)
 	DioPulPin(pADI_GPIO1,PIN2|PIN4,0);			// enable pull-down
 
 	// LED pins P1.0 = R, P1.3 = B, P2.4 = G
-	DioCfgPin(pADI_GPIO1,PIN0|PIN3,0); // PIN1.0-R, PIN1.1-G, PIN1.3-B
-	DioOenPin(pADI_GPIO1,PIN0|PIN3,1); // PIN1 cannot oscillate
-	DioPulPin(pADI_GPIO1,PIN0|PIN3,0);			// enable pull-down; LED will turn on.
+	DioCfgPin(pADI_GPIO1,PIN0|PIN3,0); // PIN1.0-R, PIN1.3-B
+	DioOenPin(pADI_GPIO1,PIN0|PIN3,1); 
+	DioPulPin(pADI_GPIO1,PIN0|PIN3,0); // enable pull-down; LED will turn on.
 
-	DioCfgPin(pADI_GPIO2,PIN4,0); // PIN1.0-R, PIN1.1-G, PIN1.3-B
+	DioCfgPin(pADI_GPIO2,PIN4,0); // PIN2.4-G
 	DioOenPin(pADI_GPIO2,PIN4,1);
 	DioPulPin(pADI_GPIO2,PIN4,0);
 	
