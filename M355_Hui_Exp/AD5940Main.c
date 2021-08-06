@@ -15,8 +15,9 @@
 /* Version History
 v2.0.8 working version, with ps1 and ps2 both working.
 v2.0.9 test remove temmperature check routine.
+v2.1.1 added board QC process {qc} command return a bitmask for failed channel. 
 */
-#define FMWARE_VERSION "2.1.0"
+#define FMWARE_VERSION "2.1.1"
 
 //#define FIFO_THRESHOLD	16
 #define APPBUFF_SIZE 1024
@@ -124,10 +125,10 @@ void turnLED(uint8_t state)
 
 /*turn onboard LED on or off*/
 void turnBoardLED(uint8_t state) {
-	// DioSetPin(pADI_GPIO0, PIN5 & (state << 5));
-	// DioClrPin(pADI_GPIO0, PIN5 ^ (state << 5));
-	DioSetPin(pADI_GPIO2, PIN4 & (state << 4));
-	DioClrPin(pADI_GPIO2, PIN4 ^ (state << 4));
+	DioSetPin(pADI_GPIO0, PIN5 & (state << 5));
+	DioClrPin(pADI_GPIO0, PIN5 ^ (state << 5));
+	// DioSetPin(pADI_GPIO2, PIN4 & (state << 4));
+	// DioClrPin(pADI_GPIO2, PIN4 ^ (state << 4));
 }
 
 /**
@@ -342,10 +343,9 @@ float calcResistor(float *pData, uint32_t DataCount)
 
 /**
 Run the board QC sequence.
-return QC status.
+return QC status as uint8_t.
 0: success; chip inserted and QC passed.
-1-8: fail; chip inserted but QC failed on 1-8 channels.
-10: default; chip not inserted.
+error found, then show bit mask of failed channel. 
 */
 uint8_t BoardQCProcess(void)
 {
@@ -368,21 +368,56 @@ uint8_t BoardQCProcess(void)
 			dataCount = APPBUFF_SIZE;
 			AppSWVISR(AppBuff, &dataCount);
 			// uartPrint((float*)AppBuff, dataCount);
-			R = calcResistor((float *)AppBuff, dataCount);
-			// printf("Channel %d R%d = %.3f < %f\n", i / 2, i, R, QCResistors[i]);
-			if (fabs(R - QCResistors[i]) / QCResistors[i] > 0.1)
+			R = calcResistor((float *)AppBuff, dataCount);			
+			if (fabs(R - QCResistors[i]) / QCResistors[i] > 0.4)
 			{
-				errorFound += 1;
+				errorFound += 1<<i;
 			}
 			delay(200);
 		}
 	}
-	if (isChipInserted()) {
-		return errorFound;
-	} else { 
-		return 10;
-	}	
+	return errorFound;	
 }
+
+/*
+Depends on the board QC status, show different LED state
+*/
+#define INTERVAL 99999  // this equals roughly 1s flash
+void showStatusLED(uint8_t* status) {	
+	static uint8_t ledState = 0x19;
+	static uint32_t count = 0;
+	static uint8_t statusOff = 0;
+	if (!statusOff && !isChipInserted()) {
+			ledState = 0x00;
+			statusOff = 1;
+			*status = 1;
+	}
+	if (*status == 0) { 
+		// QC success then blink green
+		if (count % INTERVAL == 0) {			
+			ledState ^= 0x10;
+		}
+	} else if (statusOff) {
+		// not doing a QC, then blink white 
+		if (count % INTERVAL == 0) {
+			ledState ^= 0x19;
+		}
+	} else {
+		// QC fail or have sensor inserted, then blick red
+		if (count % INTERVAL == 0) {			
+			ledState ^= 0x01;
+		}
+		// if chip is unplugged, then change status to blink white.
+	}	
+	turnLED(ledState);
+	// so if not doing a QC or if QC fail, then onboard LED will blink, suggest a QC-incomplete.
+	turnBoardLED(ledState & 0x1);
+	count++;
+	if (count == 0xFFFFFFFE) {
+		count = 0;
+	}
+}
+
 
 // send {a:0} to master
 static void ack(uint8_t i)
@@ -398,6 +433,12 @@ void handleJson(cJSON *json) //uint32_t * pDataCount
 	{
 		ack(1);
 	}
+	else if (cJSON_GetObjectItemCaseSensitive(json, "qc"))
+	{
+		uint8_t err = BoardQCProcess();
+		printf("{\"qc\":%d}*",err);
+
+	}	
 	else if (cJSON_GetObjectItemCaseSensitive(json, "cI"))
 	{
 		printf("{\"cI\":%d}*", isChipInserted());
@@ -447,43 +488,7 @@ void handleJson(cJSON *json) //uint32_t * pDataCount
 }
 
 
-/*
-Depends on the board QC status, show different LED state
-*/
-#define INTERVAL 99999
-void showStatusLED(uint8_t* status) {
-	static uint8_t ledState = 0x19;
-	static uint32_t count = 0;	
-	if (*status == 0) { 
-		// QC success then blink green
-		if (count % INTERVAL == 0) {			
-			ledState ^= 0x10;
-		}
-	} else if (*status == 10) {
-		// not doing a QC, then blink white 
-		if (count % INTERVAL == 0) {			
-			ledState ^= 0x19;			
-		}
-	} else {
-		// QC fail or have sensor inserted, then blick red
-		if (count % INTERVAL == 0) {			
-			ledState ^= 0x1;
-		}
-		// if chip is unplugged, then change status to blink white.
-		if (!isChipInserted()) {
-			ledState = 0x0;
-			*status = 10;
-		}
-	}
-	turnLED(ledState);
-	// let the onboard LED follow red-led
-	// so if not doing a QC or if QC fail, then onboard LED will blink, suggest a QC-incomplete.
-	turnBoardLED(ledState & 0x1);
-	count++;
-	if (count == 0xFFFFFFFE) {
-		count = 0;
-	}
-}
+
 
 
 /**
@@ -508,6 +513,7 @@ void AD5940_Main(void)
 			stringReceived = 0;
 			cJSON *json = cJSON_Parse(recvString);
 			strcpy(recvString, "");
+			// must send s first to break out the loop.
 			if (cJSON_GetObjectItemCaseSensitive(json, "s")) {
 				ack(1);
 				// disable the RGB-LEDs
