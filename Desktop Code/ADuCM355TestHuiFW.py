@@ -4,6 +4,10 @@ import serial.tools.list_ports
 import matplotlib.pyplot as plt
 import time
 import numpy as np
+from threading import Thread,get_ident,Lock
+import random
+
+from mymodule import ft_decorator,ft
 
 def measure(para):
     t0 = time.perf_counter()
@@ -45,50 +49,136 @@ def findComPort():
     
 class M355:
     def __init__(self,port):
-        self.ser = serial.Serial(port=port,
-                                baudrate=115200,
-                                timeout=5)
-    def write(self,string):
+        self.picoLock = Lock()
+        self.ser = serial.Serial(port=port,  # set the port
+            baudrate=115200,  # Baudrate is 230400 for EmstatPico
+            bytesize=serial.EIGHTBITS,  # number of bits per bytes
+            parity=serial.PARITY_NONE,  # set parity check: no parity
+            stopbits=serial.STOPBITS_ONE,  # number of stop bits
+            timeout=1,  # timeout block read
+            xonxoff=False,  # disable software flow control
+            rtscts=False,  # disable hardware (RTS/CTS) flow control
+            dsrdtr=False,  # disable hardware (DSR/DTR) flow control
+            write_timeout=2,  # timeout for write is 2 seconds)
+            )
+    def __repr__(self):
+        return 'M355'
+    def _write(self,string):
+        # print(f'{time.monotonic():10.2f} write:',string)
         self.ser.write(string.encode())
-    def read(self):
+    def _read(self):
         return self.ser.read_all()        
     def close(self):
         self.ser.close()
+    def _flush(self):       
+        res = self._read()
+        while res:
+            time.sleep(0.01)        
+            res = self._read()
+    
+    @ft_decorator(1)
     def json(self,data,wait=0.1):
-        self.write(self.encode(data))
-        time.sleep(wait)
-        return json.loads(self.read_until('*'))
-    def encode(self,data):
+        """
+        Always use json method to read and write data to M355.
+        if didn't get data before timeout, return {error:}.
+        """
+        if not self.picoLock.acquire(timeout=10):
+            print('cannot acquire lock')
+            return {"error": 1}
+        self._flush()
+        self._write(self._encode(data))        
+        res = self._read_until('*')
+        try:
+            result = json.loads(res)
+        except Exception as e:
+            print(f"M355.json decode error:{e}, cmd={data}, data = {res[-50:]}")
+            result = {'error': 2}
+        self.picoLock.release()
+        return result
+        
+    def _encode(self,data):
         return (json.dumps(data,separators=(',',':')) + '*')
         
-    def read_until(self,char='*',timeout=5):
+    def _read_until(self,char='*',timeout=30):
         res = ''
         t0=time.monotonic()
         while 1:
-            d = self.ser.read_all().decode()
+            d = self.ser.read_all().decode()            
             if d:
                 res += d
                 if d[-1]==char:
-                    break            
-            time.sleep(0.1)
+                    break
+            # time.sleep(0.1)
             if time.monotonic() - t0 > timeout:
-                raise RuntimeError ('time out')
-                
-        return res[0:-1]
+                break
+        return res[0:-1] # remove the last '*' character
 
 
 
 m = M355(findComPort())
 
-rr = m.read()
 
 m.read().decode(errors='ignore')
 
 print(rr.decode(errors='ignore'))
 
 
-rr = m.read()
+def writeStuff(m):
+    res = m.json({"cI":0})
+    res = m.json({"vS":-600,"vE":0,"vI":5,"vA":100,"Hz":100,"iS":100,"vP":-600,"tP":100,"f":0,"r":0,"ch":4,"ps":1})
+    m.json({'s':1})
+    
+    
+
+
 rr.decode().split('*')
+
+
+mpara = {"vS":-600,"vE":0,"vI":5,"vA":100,"Hz":100,"iS":100,"vP":-600,"tP":100,"f":0,"r":0,"ch":4,"ps":1}
+
+res = m.json(mpara)
+
+
+res = m.json({"cI":0})
+print(res)
+res = m.json(mpara)
+print(res)
+print(m.json({'s':1}))
+
+
+
+for i in range(20):
+    m.write(m.encode({"cI":0}))
+    m.write(m.encode(mpara))
+    m.write(m.encode({'s':1}))
+    
+time.sleep(1)
+m.json({'s':1})
+    
+m.json({'cI':1})
+    
+ft(m.json,args=({'s':1}))
+
+ft(m.json,args=(mpara,),number=1)
+
+m.json(mpara)
+
+
+def writeStuff(m):
+    for i in range(10):                
+        res = m.json({"vS":-600,"vE":0,"vI":5,"vA":100,"Hz":100,"iS":100,"vP":-600,"tP":100,"f":0,"r":0,"ch":4,"ps":1})
+        print(get_ident(), f'read result length: {len(res.get("c",[]))}')
+        
+        
+
+ws = []
+for i in range(10):
+    t = Thread(target=writeStuff,args=(m,))
+    t.start()
+    ws.append(t)
+
+ws
+m.json({'s':1})
 
 
 
