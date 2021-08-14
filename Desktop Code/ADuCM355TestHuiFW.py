@@ -6,6 +6,7 @@ import time
 import numpy as np
 from threading import Thread,get_ident,Lock
 import random
+from datetime import datetime
 
 from mymodule import ft_decorator,ft
 
@@ -76,7 +77,7 @@ class M355:
             time.sleep(0.01)        
             res = self._read()
     
-    @ft_decorator(1)
+    # @ft_decorator(1)
     def json(self,data,wait=0.1):
         """
         Always use json method to read and write data to M355.
@@ -99,88 +100,90 @@ class M355:
     def _encode(self,data):
         return (json.dumps(data,separators=(',',':')) + '*')
         
-    def _read_until(self,char='*',timeout=30):
+    def _read_until(self,char='*',timeout=5):
         res = ''
         t0=time.monotonic()
         while 1:
             d = self.ser.read_all().decode()            
-            if d:
+            if d:                
                 res += d
                 if d[-1]==char:
                     break
             # time.sleep(0.1)
             if time.monotonic() - t0 > timeout:
                 break
+        # print(res)
         return res[0:-1] # remove the last '*' character
+
+def date():
+    return datetime.now().strftime('%m/%d %H:%M:%S')
+
+def log(name,text):
+    toW = f"{date()} | {text} \n"
+    with open(f'./{name}.log','a') as f:
+        f.write(toW)
+    
+
+
+
 
 
 
 m = M355(findComPort())
 
+print(m.json({'s':1}))
 
-m.read().decode(errors='ignore')
-
-print(rr.decode(errors='ignore'))
-
-
-def writeStuff(m):
-    res = m.json({"cI":0})
-    res = m.json({"vS":-600,"vE":0,"vI":5,"vA":100,"Hz":100,"iS":100,"vP":-600,"tP":100,"f":0,"r":0,"ch":4,"ps":1})
-    m.json({'s':1})
-    
-    
-
-
-rr.decode().split('*')
-
-
-mpara = {"vS":-600,"vE":0,"vI":5,"vA":100,"Hz":100,"iS":100,"vP":-600,"tP":100,"f":0,"r":0,"ch":4,"ps":1}
-
-res = m.json(mpara)
-
-
-res = m.json({"cI":0})
-print(res)
-res = m.json(mpara)
-print(res)
 print(m.json({'s':1}))
 
 
 
-for i in range(20):
-    m.write(m.encode({"cI":0}))
-    m.write(m.encode(mpara))
-    m.write(m.encode({'s':1}))
-    
-time.sleep(1)
-m.json({'s':1})
-    
-m.json({'cI':1})
-    
-ft(m.json,args=({'s':1}))
-
-ft(m.json,args=(mpara,),number=1)
-
-m.json(mpara)
+print(m.json({'s':1}))
 
 
-def writeStuff(m):
-    for i in range(10):                
-        res = m.json({"vS":-600,"vE":0,"vI":5,"vA":100,"Hz":100,"iS":100,"vP":-600,"tP":100,"f":0,"r":0,"ch":4,"ps":1})
-        print(get_ident(), f'read result length: {len(res.get("c",[]))}')
-        
-        
-
-ws = []
-for i in range(10):
-    t = Thread(target=writeStuff,args=(m,))
-    t.start()
-    ws.append(t)
-
-ws
-m.json({'s':1})
 
 
+
+cmd = {'vS': -843.5, 'vE': 0, 'vI': 5, 'vA': 100.0, 
+             'Hz': 100, 'iS': 100.0, 'vP': -600, 'tP': 10.0, 
+             'f': 0, 'r': 0, 'ch': 0, 'ps': 0}
+
+
+step = 242
+vS = -100
+cmd['vS'] = vS  
+cmd['vE'] = vS + step * 5 /2
+vS
+
+cmdStr = m._encode(cmd)
+
+cmdStr
+
+m._write(cmdStr)
+res = m._read_until(timeout=5)
+print(res)
+
+
+
+
+step = 244
+vS = -100
+cmd['vS'] = vS  
+cmd['vE'] = vS + step * 5 /2
+vS
+
+cmdStr = m._encode(cmd)
+
+cmdStr
+
+m._write(cmdStr)
+res = m._read_until(timeout=5)
+print(res)
+
+
+
+json.loads(res)['c']
+
+print(len(json.loads(res.split('*')[1])['c']))
 
 # send status query, should respond with {status:1}
 print(m.json({'s':0},0.1))
@@ -319,4 +322,92 @@ for i in range(count):
 
 
 
+
+
+
+"""
+=================================================
+M355 burnning test
+=================================================
+"""
+
+
+m = M355(findComPort())
+
+print(m.json({'s':1}))
+
+cmd = {'vS': -843.5, 'vE': 0, 'vI': 5, 'vA': 100.0, 
+             'Hz': 100, 'iS': 100.0, 'vP': -600, 'tP': 10.0, 
+             'f': 0, 'r': 0, 'ch': 0, 'ps': 0}
+
+
+log('M355 Burn', "="*50)
+log('M355 Burn', "Started, with 3 checking loops and on board LED routines")
+log('M355 Burn', "="*50)
+for stepSize in range(6): #test for 3 rounds.
+    for vS in range(-600+stepSize,-50+stepSize,37):
+        for step in range(4+stepSize,290,7):
+            cmd['vP'] = vS
+            cmd['vS'] = vS  
+            cmd['vE'] = vS + step * 5 /2    
+        
+            for j in range(2):        
+                c = 'empty'
+                try:
+                    t0 = time.perf_counter()
+                    c = m.json(cmd)['c']
+                    dt = time.perf_counter() - t0
+                    time.sleep(1)
+                    avgC = sum(c) / (len(c) + 1)
+                    maxC = max(c)
+                    minC = min(c)
+                    log('M355 Burn',f"Step= {step:<7}, vS= {vS:<7}, vE= {cmd['vE']:<7}, readTime= {dt:<5.2f}s, avgC= {avgC:<10.3f}, maxC= {maxC:<10.3f}, minC= {minC:<10.3f} ")
+                except Exception as e:
+                    log('M355 Burn',f"Step = {step}, Error: {e}, Data = {c}")
+
+log('M355 Burn', "="*50)
+log('M355 Burn', "Done")
+log('M355 Burn', "="*50)
+                    
+                    
+"""
+=================================================
+M355 burnning test
+=================================================
+"""
+
+
+"""
+summary analysis
+"""
+
+file = './M355 burn.log'
+file = r"C:\Users\hui\codes\PGHM355burn.log"
+with open(file) as f:
+    data = f.read().split('\n')
+
+getVal = lambda x:float(x.split('=')[-1])
+getTime = lambda x:float(x.split('=')[-1][:-1])
+
+errors = []
+totalScan = 0
+for line in data:
+    if 'Error' in line:
+        errors.append(line)
+        totalScan+=1
+        continue
+    if 'Step=' in line:
+        totalScan+=1
+        fields = line.split(',')
+        minC = getVal(fields[-1])        
+        rT = getTime(fields[-4])
+        if rT>2 or minC<-1:
+            errors.append(line)
+            continue
+
+with open(f'./summary.log','w') as f:
+    f.write(f'Total Scan {totalScan}\n')
+    f.write('\n'.join(errors))
+    if (len(errors) == 0):
+        f.write('all good. no error')
 

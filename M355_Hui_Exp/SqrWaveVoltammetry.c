@@ -138,6 +138,7 @@ Analog Devices Software License Agreement.
 #include "math.h"
 #include "SqrWaveVoltammetry.h"
 
+
 /**
  * @brief The ramp application paramters.
  * @details Do not modify following default parameters. Use the function in AD5940Main.c to change it. 
@@ -226,7 +227,8 @@ AD5940Err AppSWVGetCfg(void *pCfg)
  * @return none.
 */
 AD5940Err AppSWVCtrl(uint32_t Command, void *pPara)
-{
+{   
+  
   switch (Command)
   {
     case APPCTRL_START:
@@ -257,7 +259,7 @@ AD5940Err AppSWVCtrl(uint32_t Command, void *pPara)
       wupt_cfg.SeqxWakeupTime[SEQID_0] = (uint32_t)(AppSWVCfg.LFOSCClkFreq*((1/AppSWVCfg.Frequency*500) - AppSWVCfg.SampleDelay)/1000.0f) - 4 - 2;
       wupt_cfg.SeqxSleepTime[SEQID_1] = wupt_cfg.SeqxSleepTime[SEQID_0];
       wupt_cfg.SeqxWakeupTime[SEQID_1] = wupt_cfg.SeqxWakeupTime[SEQID_0];
-      AD5940_WUPTCfg(&wupt_cfg);
+      AD5940_WUPTCfg(&wupt_cfg); //run the step wise scan
       break;
     }
     case APPCTRL_STOPNOW:
@@ -474,16 +476,19 @@ static AD5940Err AppSWVSeqADCCtrlGen(void)
  *          - CurrRampCode
  * @return return error code.
 */
+
+
+
 static AD5940Err RampDacRegUpdate(uint32_t *pDACData, uint8_t bFinal)
 {
   uint32_t VbiasCode, VzeroCode;
-
   
   switch(AppSWVCfg.RampState)
   {
     case SWV_STATE0: /* Begin of Ramp  */
       AppSWVCfg.CurrVzeroCode = (uint32_t)((AppSWVCfg.VzeroStart -200.0f)/DAC6BITVOLT_1LSB);
       AppSWVCfg.RampState = SWV_STATE1;
+      
       break;
     case SWV_STATE1:
       if(AppSWVCfg.CurrStepPos >= AppSWVCfg.StepNumber/2)
@@ -556,8 +561,8 @@ static AD5940Err AppSWVSeqDACCtrlGen(void)
   static BoolFlag bCmdForSeq0 = bTRUE;
   static uint32_t DACSeqBlk0Addr, DACSeqBlk1Addr;
   static uint32_t StepsRemainning, StepsPerBlock, DACSeqCurrBlk;
-
-  AppSWVCfg.StepNumber = (uint32_t)(2*(AppSWVCfg.RampPeakVolt - AppSWVCfg.RampStartVolt)/AppSWVCfg.SqrWvRampIncrement);
+  // the step number must be an even number. 
+  AppSWVCfg.StepNumber = (uint32_t)((AppSWVCfg.RampPeakVolt - AppSWVCfg.RampStartVolt)/AppSWVCfg.SqrWvRampIncrement) * 2;
   AppSWVCfg.FifoThresh = AppSWVCfg.StepNumber;
   /* Do some math calculations */
   if(AppSWVCfg.bFirstDACSeq == bTRUE)
@@ -566,10 +571,12 @@ static AD5940Err AppSWVSeqDACCtrlGen(void)
     int32_t DACSeqLenMax;
     StepsRemainning = AppSWVCfg.StepNumber;
     DACSeqLenMax = (int32_t)AppSWVCfg.MaxSeqLen - (int32_t)AppSWVCfg.InitSeqInfo.SeqLen - (int32_t)AppSWVCfg.ADCSeqInfo.SeqLen;
+    
     if(DACSeqLenMax < SEQLEN_ONESTEP*4)
       return AD5940ERR_SEQLEN;  /* No enough sequencer SRAM available */
-    DACSeqLenMax -= SEQLEN_ONESTEP*2;  /* Reserve commands each block */
+    DACSeqLenMax -= SEQLEN_ONESTEP*2;  /* Reserve commands each block */ 
     StepsPerBlock = DACSeqLenMax/SEQLEN_ONESTEP/2;
+    
     DACSeqBlk0Addr = AppSWVCfg.ADCSeqInfo.SeqRamAddr + AppSWVCfg.ADCSeqInfo.SeqLen;
     DACSeqBlk1Addr = DACSeqBlk0Addr + StepsPerBlock*SEQLEN_ONESTEP;
     DACSeqCurrBlk = CURRBLK_BLK0;    
@@ -577,7 +584,7 @@ static AD5940Err AppSWVSeqDACCtrlGen(void)
     /* Analog part */
     AppSWVCfg.DACCodePerStep = AppSWVCfg.SqrWvAmplitude/DAC12BITVOLT_1LSB;
     AppSWVCfg.DACCodePerRamp = AppSWVCfg.SqrWvRampIncrement/DAC12BITVOLT_1LSB;
-#if ALIGIN_VOLT2LSB
+#if ALIGIN_VOLT2LSB // 0 in the current settings.
     AppSWVCfg.DACCodePerStep = (int32_t)AppSWVCfg.DACCodePerStep;
     AppSWVCfg.DACCodePerRamp = (int32_t)AppSWVCfg.DACCodePerRamp;
 #endif
@@ -619,6 +626,7 @@ static AD5940Err AppSWVSeqDACCtrlGen(void)
     AD5940_SEQCmdWrite(CurrAddr, SeqCmdBuff, SEQLEN_ONESTEP);
     bCmdForSeq0 = bCmdForSeq0?bFALSE:bTRUE;
   }
+  
   /* Add final DAC update */
   if(bIsFinalBlk)/* This is the final block */
   {
@@ -626,6 +634,7 @@ static AD5940Err AppSWVSeqDACCtrlGen(void)
     SRAMAddr += SEQLEN_ONESTEP;  /* Jump to next sequence */
     /* After update LPDAC with final data, we let sequencer to run 'final final' command, to disable sequencer.  */
     RampDacRegUpdate(&DACData,1);
+    
     
     // comment out (hui)
     SeqCmdBuff[0] = SEQ_WR(AppSWVCfg.REG_AFE_LPDACDAT, DACData);
@@ -755,7 +764,8 @@ AD5940Err AppSWVInit(uint32_t *pBuffer, uint32_t BufferSize)
   AD5940Err error = AD5940ERR_OK;  
   FIFOCfg_Type fifo_cfg;
   SEQCfg_Type seq_cfg;
-  
+  // uint16_t counter = 0;
+
   if(AD5940_WakeUp(10) > 10)  /* Wakup AFE by read register, read 10 times at most */
     return AD5940ERR_WAKEUP;  /* Wakeup Failed */
 
@@ -767,6 +777,7 @@ AD5940Err AppSWVInit(uint32_t *pBuffer, uint32_t BufferSize)
   seq_cfg.SeqEnable = bFALSE;
   seq_cfg.SeqWrTimer = 0;
   AD5940_SEQCfg(&seq_cfg);
+  // printf("AppSWVInit %d",counter++);
   
   /* Start sequence generator */
   /* Initialize sequencer generator */
@@ -802,6 +813,7 @@ AD5940Err AppSWVInit(uint32_t *pBuffer, uint32_t BufferSize)
   fifo_cfg.FIFOMode = FIFOMODE_FIFO;
   fifo_cfg.FIFOSize = FIFOSIZE_2KB;
   AD5940_FIFOCfg(&fifo_cfg);
+  // printf("AppSWVInit %d",counter++);
   
   /* Clear all interrupts */
   AD5940_INTCClrFlag(AFEINTSRC_ALLINT);
@@ -809,18 +821,44 @@ AD5940Err AppSWVInit(uint32_t *pBuffer, uint32_t BufferSize)
   AppSWVCfg.bFirstDACSeq = bTRUE;
   error = AppSWVSeqDACCtrlGen();
   if(error != AD5940ERR_OK) return error;
+  // printf("AppSWVInit %d",counter++);
   
   /* Configure sequence info. */
   AppSWVCfg.InitSeqInfo.WriteSRAM = bFALSE;
   AD5940_SEQInfoCfg(&AppSWVCfg.InitSeqInfo);
+  // printf("AppSWVInit %d",counter++);
 
   AD5940_SEQCtrlS(bTRUE); /* Enable sequencer */
-  AD5940_SEQMmrTrig(AppSWVCfg.InitSeqInfo.SeqId);
-  while(AD5940_INTCTestFlag(AFEINTC_1, AFEINTSRC_ENDSEQ) == bFALSE);
+
+  // wait
+	uint16_t counter= 0xFFFF;
+	while (counter) {
+			counter--;
+	};
+  AD5940_SEQMmrTrig(AppSWVCfg.InitSeqInfo.SeqId); /* Trigger sequencer by register write.*/
+  // while(AD5940_INTCTestFlag(AFEINTC_1, AFEINTSRC_ENDSEQ) == bFALSE); // can sometimes halt due to unknown reason.
+  // add a counter to avoid infinite block.
+  // normally counter goes down to 500
+  counter= 0xFFFF;
+  while(counter) {
+    if(AD5940_INTCTestFlag(AFEINTC_1, AFEINTSRC_ENDSEQ) != bFALSE) {
+      // printf("intC %d\n",counter);
+      break;       
+    };
+    counter--;
+  }; 
+  if (counter==0){
+    // return error if flat is not cleared. AD5940ERR_APPERROR = -100
+    return AD5940ERR_APPERROR;
+  }
+
+
   AD5940_INTCClrFlag(AFEINTSRC_ENDSEQ);
+  // printf("AppSWVInit %d",counter++);
 
   AppSWVCfg.ADCSeqInfo.WriteSRAM = bFALSE;
   AD5940_SEQInfoCfg(&AppSWVCfg.ADCSeqInfo);
+
   
   AppSWVCfg.DACSeqInfo.WriteSRAM = bFALSE;
   AD5940_SEQInfoCfg(&AppSWVCfg.DACSeqInfo);
@@ -828,9 +866,12 @@ AD5940Err AppSWVInit(uint32_t *pBuffer, uint32_t BufferSize)
   AD5940_SEQCtrlS(bFALSE);
   AD5940_WriteReg(REG_AFE_SEQCNT, 0);
   AD5940_SEQCtrlS(bTRUE);   /* Enable sequencer, and wait for trigger */
+  // printf("AppSWVInit %d",counter++);
   AD5940_ClrMCUIntFlag();   /* Clear interrupt flag generated before */
+  // printf("AppSWVInit %d",counter++);
 
   AD5940_AFEPwrBW(AFEPWR_LP, AFEBW_250KHZ); /* Set to low power mode */
+  // printf("AppSWVInit %d",counter++);
 
   AppSWVCfg.SWVInited = bTRUE;  /* SWV application has been initialized. */
   return AD5940ERR_OK;
@@ -859,14 +900,20 @@ static int32_t AppSWVRegModify(int32_t * const pData, uint32_t *pDataCount)
  * @return return error code.
 */
 static int32_t AppSWVDataProcess(int32_t * const pData, uint32_t *pDataCount) {
-  uint32_t i, datacount;
-  datacount = *pDataCount;
+  uint32_t i;
+  uint32_t offset=0;
   float *pOut = (float *)pData;
+ 
+  float factor = 1.0f/AppSWVCfg.RtiaValue.Magnitude*1e3f;
   float temp;
-  for(i=0;i<datacount;i++)  {
-    pData[i] &= 0xffff; 
-    temp = AD5940_ADCCode2Volt(pData[i],AppSWVCfg.AdcPgaGain, AppSWVCfg.ADCRefVolt);
-    pOut[i] = temp/AppSWVCfg.RtiaValue.Magnitude*1e3f;  /* Result unit is uA. */
+  // skip first data point if dataCount is odd number.
+  if (*pDataCount % 2 != 0) {
+    offset=1;    
+  }
+  for (i=0;i<*pDataCount - offset;i++)  {
+    pData[i + offset] &= 0xffff; 
+    temp = AD5940_ADCCode2Volt(pData[i + offset],AppSWVCfg.AdcPgaGain, AppSWVCfg.ADCRefVolt) * factor;
+    pOut[i] = temp;  /* Result unit is uA. */    
   }
   return 0;
 }
@@ -888,16 +935,28 @@ AD5940Err AppSWVISR(void *pBuff, uint32_t *pCount)
     return AD5940ERR_WAKEUP;  /* Wakeup Failed */
   AD5940_SleepKeyCtrlS(SLPKEY_LOCK);
   *pCount = 0;
+  // add a loop to delay flag read
+  // 1900 is the edge, will sometimes give positive sometimes give negative.
+  // 4000 still some intervals give negative results.
+	uint16_t loop = 0xFFFF;
+	while (loop > 0)
+		loop--;
+
   IntFlag = AD5940_INTCGetFlag(AFEINTC_0);
+  // printf("flat%d",IntFlag);
+  // #define AFEINTSRC_CUSTOMINT0        0x00000200  
+  /*<  Bit9,  Custom interrupt source 0. It happens when **sequencer** writes 1 to register AFEGENINTSTA.BIT0 */
   if(IntFlag & AFEINTSRC_CUSTOMINT0)          /* High priority. */
   {
     AD5940Err error;
     AD5940_INTCClrFlag(AFEINTSRC_CUSTOMINT0);
     error = AppSWVSeqDACCtrlGen();
     if(error != AD5940ERR_OK) return error;
-    AD5940_SleepKeyCtrlS(SLPKEY_UNLOCK);
+    AD5940_SleepKeyCtrlS(SLPKEY_UNLOCK);    
     //AD5940_EnterSleepS(); /* If there is need to do AFE re-configure, do it here when AFE is in active state */
   }
+
+  //#define AFEINTSRC_DATAFIFOTHRESH    0x02000000  /**<  Bit25, Data FIFO Threshold Interrupt. */
   if(IntFlag&AFEINTSRC_DATAFIFOTHRESH)
   {
     FifoCnt = AD5940_FIFOGetCnt();
@@ -905,17 +964,21 @@ AD5940Err AppSWVISR(void *pBuff, uint32_t *pCount)
     if(FifoCnt > BuffCount)
     {
       ///@todo buffer is limited.
+      
     }
     AD5940_FIFORd((uint32_t *)pBuff, FifoCnt);
     AD5940_INTCClrFlag(AFEINTSRC_DATAFIFOTHRESH);
-    AppSWVRegModify(pBuff, &FifoCnt);   
+    AppSWVRegModify(pBuff, &FifoCnt);
     AD5940_SleepKeyCtrlS(SLPKEY_UNLOCK);
     //AD5940_EnterSleepS();
       /* Process data */ 
     AppSWVDataProcess((int32_t*)pBuff,&FifoCnt);
     *pCount = FifoCnt;
+    //printf("fifo thre %d",FifoCnt);
     return 0;
   }
+
+  //#define AFEINTSRC_ENDSEQ     0x00008000  /**<  Bit15, End of Sequence Interrupt. */
   if(IntFlag & AFEINTSRC_ENDSEQ)
   {
     FifoCnt = AD5940_FIFOGetCnt();

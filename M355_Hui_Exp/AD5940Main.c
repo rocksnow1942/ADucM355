@@ -16,8 +16,9 @@
 v2.0.8 working version, with ps1 and ps2 both working.
 v2.0.9 test remove temmperature check routine.
 v2.1.1 added board QC process {qc} command return a bitmask for failed channel. 
+v2.1.2 fixed bugs related to negative current (sign flipping) and board freeze (~ 40ms slower)
 */
-#define FMWARE_VERSION "2.1.1"
+#define FMWARE_VERSION "2.1.2"
 
 //#define FIFO_THRESHOLD	16
 #define APPBUFF_SIZE 1024
@@ -211,7 +212,9 @@ void AD5940RampStructInit(float vStart, float vEnd, float vIncrement, float vAmp
 	AppSWVGetCfg(&pRampCfg);
 	/* Step1: configure general parmaters */
 	pRampCfg->SeqStartAddr = 0x10;		/* leave 16 commands for LFOSC calibration.  */
-	pRampCfg->MaxSeqLen = 1024 - 0x10;	/* 4kB/4 = 1024  */
+
+	// if set maxseqlen to 1024, will cause problem when StepNumber > 250
+	pRampCfg->MaxSeqLen = 1024 -0x10; //1024 - 0x10;	/* 4kB/4 = 1024  */
 										/*
 		This RcalVal changes based on the AppSWVDataProcess in "SWV".c
 		Not entirely sure why, but there's a slight offset
@@ -319,10 +322,16 @@ void SWVMeasure(float vS, float vE, float vI, float vA,
 				float f, float mC, uint8_t ps,
 				int32_t vP, int32_t sP, uint8_t ch)
 {	
-	selectChannel(ch);						// always Set MUX pins
+	
+	AD5940Err error = AD5940ERR_OK;
+	selectChannel(ch);						// always Set MUX pins	
 	AD5940RampStructInit(vS, vE, vI, vA, f, mC, ps, vP, sP); // Initialize the SWV values
-	AppSWVInit(AppBuff, APPBUFF_SIZE);						 /* Initialize RAMP application. Provide a buffer, which is used to store sequencer commands */
-	AppSWVCtrl(APPCTRL_START, 0);							 /* Control IMP measurement to start. Second parameter has no meaning with this command. */
+	error = AppSWVInit(AppBuff, APPBUFF_SIZE);	/* Initialize RAMP application. Provide a buffer, which is used to store sequencer commands */
+	if (error == AD5940ERR_OK) {		
+		AppSWVCtrl(APPCTRL_START, 0); /* Control IMP measurement to start. Second parameter has no meaning with this command. */
+	} else {
+		printf("{\"e\":%d}*",error);
+	};	
 }
 
 /*
@@ -538,7 +547,7 @@ void AD5940_Main(void)
 			dataCount = APPBUFF_SIZE;
 			AppSWVISR(AppBuff, &dataCount);
 			uartPrint((float *)AppBuff, dataCount);
-			turnBoardLED(1);
+			turnBoardLED(1);			
 		}
 
 		if (stringReceived == 1) // any received string will rerun the code ... for now
