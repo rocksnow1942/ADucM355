@@ -53,13 +53,9 @@ void _ad5940_analog_init(void){
   adc_filter.BpSinc3 = bFALSE;                /* We use SINC3 filter. */
 
   // this part is giving the blocking when removed- Hui. 3/19
-  adc_filter.Sinc3ClkEnable = bTRUE;          /* Enable SINC3 clock.  (removed for some reason?)*/
-	adc_filter.Sinc2NotchClkEnable = bTRUE;			/* (removed for some reason?)*/
 
   adc_filter.Sinc2NotchEnable = bTRUE;        /* Enable the SINC2+Notch block. You can also use function AD5940_AFECtrlS */
-	
-	adc_filter.DFTClkEnable = bTRUE;						/* (removed for some reason?)*/
-	adc_filter.WGClkEnable = bTRUE;							/* (removed for some reason?)*/
+
 
   AD5940_ADCFilterCfgS(&adc_filter);
   AD5940_AFECtrlS(AFECTRL_TEMPSPWR, bTRUE);   /* Turn on temperature sensor power */

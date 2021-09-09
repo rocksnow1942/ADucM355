@@ -148,11 +148,12 @@ cmd = {'vS': -843.5, 'vE': 0, 'vI': 5, 'vA': 100.0,
              'f': 0, 'r': 0, 'ch': 0, 'ps': 0}
 
 
-step = 242
+step = 57
 vS = -100
 cmd['vS'] = vS  
 cmd['vE'] = vS + step * 5 /2
-vS
+
+cmd
 
 cmdStr = m._encode(cmd)
 

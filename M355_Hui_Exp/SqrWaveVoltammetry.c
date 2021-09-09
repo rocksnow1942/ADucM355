@@ -829,12 +829,12 @@ AD5940Err AppSWVInit(uint32_t *pBuffer, uint32_t BufferSize)
   // printf("AppSWVInit %d",counter++);
 
   AD5940_SEQCtrlS(bTRUE); /* Enable sequencer */
-
   // wait
 	uint16_t counter= 0xFFFF;
 	while (counter) {
 			counter--;
 	};
+  
   AD5940_SEQMmrTrig(AppSWVCfg.InitSeqInfo.SeqId); /* Trigger sequencer by register write.*/
   // while(AD5940_INTCTestFlag(AFEINTC_1, AFEINTSRC_ENDSEQ) == bFALSE); // can sometimes halt due to unknown reason.
   // add a counter to avoid infinite block.
@@ -842,13 +842,13 @@ AD5940Err AppSWVInit(uint32_t *pBuffer, uint32_t BufferSize)
   counter= 0xFFFF;
   while(counter) {
     if(AD5940_INTCTestFlag(AFEINTC_1, AFEINTSRC_ENDSEQ) != bFALSE) {
-      // printf("intC %d\n",counter);
+      // if passed check, break
       break;       
     };
     counter--;
   }; 
   if (counter==0){
-    // return error if flat is not cleared. AD5940ERR_APPERROR = -100
+    // return error if flag is not cleared. AD5940ERR_APPERROR = -100
     return AD5940ERR_APPERROR;
   }
 

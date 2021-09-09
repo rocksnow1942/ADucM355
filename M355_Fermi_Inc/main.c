@@ -10,6 +10,10 @@ void UartInit(void);
 void ClockInit(void);
 void GPIOInit(void);
 void AD5940_Main(void);
+
+// Enable HUI Code
+//#define HUI
+
 /*flag indicates MCU is wake up*/
 #define MCU_STATUS_ACTIVE   0
 #define MCU_STATUS_SLEPT   1

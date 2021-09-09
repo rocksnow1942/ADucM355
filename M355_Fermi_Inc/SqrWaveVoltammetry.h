@@ -70,13 +70,15 @@ typedef struct
   float     floor;
   BoolFlag  StopRequired;         /**< After FIFO is ready, stop the measurment sequence */
   enum _RampState{SWV_STATE0 = 0, SWV_STATE1, SWV_STATE2, SWV_STOP} RampState;
-  // comment out (hui)
-	// uint8_t LPAMP;
-	// uint8_t LPDAC;
-	// uint16_t REG_AFE_LPDACDAT;
-	// uint8_t adcMuxN;
-	// uint8_t adcMuxP;
 }AppSWVCfg_Type;
+
+typedef enum {
+  OPT_MEAS_I      = 0, /* Current */
+  OPT_MEAS_VSE0   = 1, /* VDE0-1.1V */
+  OPT_MEAS_VRE0   = 2, /* VRE0-1.1V */
+  NUM_OPT_MEAS    = 3
+} OPT_MEAS_Type;
+
 
 #define APPCTRL_START          0
 #define APPCTRL_STOPNOW        1
@@ -87,5 +89,6 @@ AD5940Err AppSWVInit(uint32_t *pBuffer, uint32_t BufferSize);
 AD5940Err AppSWVGetCfg(void *pCfg);
 AD5940Err AppSWVISR(void *pBuff, uint32_t *pCount);
 AD5940Err AppSWVCtrl(uint32_t Command, void *pPara);
+void AD5940ADCMuxCfgs(uint32_t *pMuxP,uint32_t *pMuxN);
 
 #endif

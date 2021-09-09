@@ -86,11 +86,11 @@ Analog Devices Software License Agreement.
  * 300mV->       _____     |     |____|
  * 250mV->      |     |____|                           
  * 200mV->    __|
- * Update DAC:  ↑     ↑    ↑     ↑    ↑       ↑       -No update        
+ * Update DAC:  ?�     ?�    ?�     ?�    ?�       ?�       -No update        
  *            SEQ0  SEQ1  SEQ0  SEQ1 SEQ0    SEQ1    SEQ0       
  *                 |   / |   / |   / |   /   |   /   |   /  |        
  *                 SEQ2  SEQ2 SEQ2  SEQ2    SEQ2    SEQ2   |The final sequence is set to disable sequencer
- * WuptTrigger  ↑  ↑    ↑  ↑    ↑  ↑    ↑  ↑    ↑  ↑    ↑  ↑    ↑  ↑    ↑  ↑
+ * WuptTrigger  ?�  ?�    ?�  ?�    ?�  ?�    ?�  ?�    ?�  ?�    ?�  ?�    ?�  ?�    ?�  ?�
  * Time Spend   |t1| t2 |t1| t2 |t1| t2 |t1| t2 |t1| t2 |t1| t2 |t1| t2 |t1| t2
  *                                                                 |The following triggers are ignored because sequencer is disabled 
  * Wupt: Wakeup Timer   
@@ -309,16 +309,19 @@ AD5940Err AppSWVCtrl(uint32_t Command, void *pPara) {
  * @brief Generate initialization sequence and write the commands to SRAM.
  * @return return error code.
 */
-extern int32_t SensorNum;
+extern int32_t SensorNum, PreSensorNum;
 extern int32_t gvPretreatment, gsecsPretreatment;
+int imeas = 0;          /* Default is Current,  the measurement type we are doing from OPT_RAMP_MEAS_Type */
+
+#define CASE3  // CASE1, CASE2, CASE3
 static AD5940Err AppSWVSeqInitGen(void) {
   AD5940Err error = AD5940ERR_OK;
   const uint32_t *pSeqCmd;
   uint32_t SeqLen;
   AFERefCfg_Type aferef_cfg;
-  LPLoopCfg_Type lploop_cfg;
+  LPLoopCfg_Type lploop_cfg, lploop_cfgB;
   DSPCfg_Type dsp_cfg;
- 
+	
 	uint8_t LPDAC_SEL, LPAMP_SEL;
 	uint32_t MuxP = 0; //ADC Mux p+ terminal
   uint32_t MuxN = 0; //ADC Mux n- terminal
@@ -342,17 +345,46 @@ static AD5940Err AppSWVSeqInitGen(void) {
   aferef_cfg.LpRefBufEn = bTRUE;
   aferef_cfg.LpRefBoostEn = bFALSE;
   AD5940_REFCfgS(&aferef_cfg);
-    /* Select which channel to control */
+
+  /* Select which channel to control */
   if(SensorNum== 1) {  // SensorNum=1 means Sensor#1, SensorNum=2 means Sensor#2
     LPDAC_SEL = LPDAC0;
     LPAMP_SEL = LPAMP0;
-    MuxP = ADCMUXP_LPTIA0_P;
-    MuxN = ADCMUXN_LPTIA0_N;
+		
+		lploop_cfgB.LpAmpCfg.LpAmpSel = LPAMP1;
+		#ifdef CASE1
+		// case #1 :
+		lploop_cfgB.LpAmpCfg.LpTiaSW=0;				
+		AD5940_LPAMPCfgS(&(lploop_cfgB.LpAmpCfg));		
+		#endif
+		#ifdef CASE2
+		// case #2 :
+		AD5940_WriteReg(REG_AFE_LPTIACON1, 3);		
+		#endif
+		#ifdef CASE3
+		// case #3 :
+		lploop_cfgB.LpAmpCfg.LpTiaSW=0x108;				
+		AD5940_LPAMPCfgS(&(lploop_cfgB.LpAmpCfg));		
+		#endif		
   } else  {
     LPDAC_SEL = LPDAC1;
     LPAMP_SEL = LPAMP1;
-    MuxP = ADCMUXP_LPTIA1_P;
-    MuxN = ADCMUXN_LPTIA1_N;
+		
+		lploop_cfgB.LpAmpCfg.LpAmpSel = LPAMP0;
+    #ifdef CASE1
+		// case #1 :
+		lploop_cfgB.LpAmpCfg.LpTiaSW=0;				
+		AD5940_LPAMPCfgS(&(lploop_cfgB.LpAmpCfg));		
+		#endif
+		#ifdef CASE2
+		// case #2 :
+		AD5940_WriteReg(REG_AFE_LPTIACON0, 3);		
+		#endif				
+		#ifdef CASE3
+		// case #3 :
+		lploop_cfgB.LpAmpCfg.LpTiaSW=0x108;				
+		AD5940_LPAMPCfgS(&(lploop_cfgB.LpAmpCfg));		
+		#endif		
   }
 	
   lploop_cfg.LpAmpCfg.LpAmpSel = LPAMP_SEL;
@@ -368,9 +400,10 @@ static AD5940Err AppSWVSeqInitGen(void) {
     lploop_cfg.LpAmpCfg.LpTiaSW = /*LPTIASW(13)|*/LPTIASW(2)|LPTIASW(4)|LPTIASW(5);     /* Configured for 3 lead sensor connected to CE0, RE0 and SE0. Modify these switches if using a 2 lead sensor */
   lploop_cfg.LpDacCfg.LpdacSel = LPDAC_SEL;
 
-  lploop_cfg.LpDacCfg.DacData6Bit = (uint32_t)((AppSWVCfg.VzeroStart-200)/DAC6BITVOLT_1LSB);
+  lploop_cfg.LpDacCfg.DacData6Bit = (uint32_t)((AppSWVCfg.VzeroStart-200)/DAC6BITVOLT_1LSB); // 34.92[mV]
   lploop_cfg.LpDacCfg.DacData12Bit = (uint32_t)((((-1.0f*gvPretreatment)/DAC12BITVOLT_1LSB) + 64*lploop_cfg.LpDacCfg.DacData6Bit));  // 0.537[mV]
   //lploop_cfg.LpDacCfg.DacData12Bit = (int32_t)((AppSWVCfg.RampStartVolt)/DAC12BITVOLT_1LSB) + lploop_cfg.LpDacCfg.DacData6Bit*64;	
+	
   lploop_cfg.LpDacCfg.LpDacVbiasMux = LPDACVBIAS_12BIT; /* Step Vbias. Use 12bit DAC ouput */
   lploop_cfg.LpDacCfg.LpDacVzeroMux = LPDACVZERO_6BIT;  /* Base is Vzero. Use 6 bit DAC ouput */
   lploop_cfg.LpDacCfg.DataRst = bFALSE;
@@ -380,7 +413,8 @@ static AD5940Err AppSWVSeqInitGen(void) {
 	lploop_cfg.LpDacCfg.PowerEn = bTRUE;
   AD5940_LPLoopCfgS(&lploop_cfg);
   
-  AD5940_StructInit(&dsp_cfg, sizeof(dsp_cfg));  
+  AD5940_StructInit(&dsp_cfg, sizeof(dsp_cfg));
+	AD5940ADCMuxCfgs(&MuxP, &MuxN);
   dsp_cfg.ADCBaseCfg.ADCMuxN = MuxN;
   dsp_cfg.ADCBaseCfg.ADCMuxP = MuxP;
   dsp_cfg.ADCBaseCfg.ADCPga = AppSWVCfg.AdcPgaGain;
@@ -514,7 +548,7 @@ static AD5940Err RampDacRegUpdate(uint32_t *pDACData, int32_t bFinal) {
 		AppSWVCfg.bSqrWaveHiLevel = bTRUE;
 	}
   VzeroCode = AppSWVCfg.CurrVzeroCode;
-  if(bFinal) {
+	if(bFinal) {
 		VbiasCode = (uint32_t)(VzeroCode*64);
 	} else {
 		VbiasCode = (uint32_t)(VzeroCode*64 + AppSWVCfg.CurrRampCode);
@@ -523,8 +557,10 @@ static AD5940Err RampDacRegUpdate(uint32_t *pDACData, int32_t bFinal) {
   if(VbiasCode < (VzeroCode*64))
     VbiasCode --;
   /* Truncate */
-  if(VbiasCode > 4095) VbiasCode = 4095;
-  if(VzeroCode >   63) VzeroCode =   63;
+  if(VbiasCode > 4095) 
+		VbiasCode = 4095;
+  if(VzeroCode >   63) 
+		VzeroCode =   63;
   *pDACData = (VzeroCode<<12)|VbiasCode;
   return AD5940ERR_OK;
 }
@@ -591,7 +627,8 @@ static AD5940Err AppSWVSeqDACCtrlGen(void) {
     bCmdForSeq0 = bTRUE;      /* Start with SEQ0 */
   }
 
-  if(StepsRemainning == 0) return AD5940ERR_OK; /* Done. */
+  if(StepsRemainning == 0) 
+		return AD5940ERR_OK; /* Done. */
   bIsFinalBlk = StepsRemainning <= StepsPerBlock?bTRUE:bFALSE;
   if(bIsFinalBlk)
     StepsThisBlock = StepsRemainning;
@@ -599,20 +636,19 @@ static AD5940Err AppSWVSeqDACCtrlGen(void) {
     StepsThisBlock = StepsPerBlock;
   StepsRemainning -= StepsThisBlock;
 
-  BlockStartSRAMAddr = (DACSeqCurrBlk == CURRBLK_BLK0)?\
-                        DACSeqBlk0Addr:DACSeqBlk1Addr;
+  BlockStartSRAMAddr = (DACSeqCurrBlk == CURRBLK_BLK0)? DACSeqBlk0Addr:DACSeqBlk1Addr;
   SRAMAddr = BlockStartSRAMAddr;
 
   for(i=0; i<StepsThisBlock - 1; i++) {
     uint32_t CurrAddr = SRAMAddr;
     SRAMAddr += SEQLEN_ONESTEP;  /* Jump to next sequence */
-    RampDacRegUpdate(&DACData,0);
-    if(SensorNum== 1) {  // 	// SensorNum=1 means Sensor#1, SensorNum=2 means Sensor#2
+    RampDacRegUpdate(&DACData,0);		
+		if(SensorNum== 1) {  // 	// SensorNum=1 means Sensor#1, SensorNum=2 means Sensor#2
 			SeqCmdBuff[0] = SEQ_WR(REG_AFE_LPDACDAT0, DACData);
 		} else {
 			SeqCmdBuff[0] = SEQ_WR(REG_AFE_LPDACDAT1, DACData);
 		}
-    SeqCmdBuff[1] = SEQ_WAIT(10); /* !!!NOTE LPDAC need 10 clocks to update data. Before send AFE to sleep state, wait 10 extra clocks */
+		SeqCmdBuff[1] = SEQ_WAIT(10); /* !!!NOTE LPDAC need 10 clocks to update data. Before send AFE to sleep state, wait 10 extra clocks */
     SeqCmdBuff[2] = SEQ_WR(bCmdForSeq0?REG_AFE_SEQ1INFO:REG_AFE_SEQ0INFO,\
                             (SRAMAddr<<BITP_AFE_SEQ1INFO_ADDR)|(SEQLEN_ONESTEP<<BITP_AFE_SEQ1INFO_LEN));
     SeqCmdBuff[3] = SEQ_SLP();
@@ -637,10 +673,10 @@ static AD5940Err AppSWVSeqDACCtrlGen(void) {
     AD5940_SEQCmdWrite(CurrAddr, SeqCmdBuff, SEQLEN_ONESTEP);
     CurrAddr += SEQLEN_ONESTEP;
     /* The final final command is to disable sequencer. */
-   SeqCmdBuff[0] = SEQ_NOP();    /* Do nothing */
-   SeqCmdBuff[1] = SEQ_NOP();
-    // SeqCmdBuff[0] = SEQ_WR(REG_AFE_LPDACDAT0, 0);
-    // SeqCmdBuff[1] = SEQ_WR(REG_AFE_LPDACDAT1, 0);
+    SeqCmdBuff[0] = SEQ_NOP();    /* Do nothing */
+    SeqCmdBuff[1] = SEQ_NOP();
+//    SeqCmdBuff[0] = SEQ_WR(REG_AFE_LPDACDAT0, 0);
+//    SeqCmdBuff[1] = SEQ_WR(REG_AFE_LPDACDAT1, 0);
     SeqCmdBuff[2] = SEQ_NOP();
     SeqCmdBuff[3] = SEQ_STOP();   /* Stop sequencer. */
     /* Disable sequencer, END of sequencer interrupt is generated. */
@@ -650,7 +686,7 @@ static AD5940Err AppSWVSeqDACCtrlGen(void) {
     uint32_t CurrAddr = SRAMAddr;
     SRAMAddr = (DACSeqCurrBlk == CURRBLK_BLK0)? DACSeqBlk1Addr:DACSeqBlk0Addr;
     RampDacRegUpdate(&DACData,0);          
-    if(SensorNum== 1) {  // 	// SensorNum=1 means Sensor#1, SensorNum=2 means Sensor#2
+		if(SensorNum== 1) {  // 	// SensorNum=1 means Sensor#1, SensorNum=2 means Sensor#2
 			SeqCmdBuff[0] = SEQ_WR(REG_AFE_LPDACDAT0, DACData);
 		} else {
 			SeqCmdBuff[0] = SEQ_WR(REG_AFE_LPDACDAT1, DACData);
@@ -693,12 +729,14 @@ static AD5940Err AppSWVRtiaCal(void) {
 	uint32_t LPAMP_SEL;	
 	
   AD5940_StructInit(&lprtia_cal, sizeof(lprtia_cal));
-  	/* Select which channel to control */
+
+	/* Select which channel to control */
   if(SensorNum== 1) {  // SensorNum=1 means Sensor#1, SensorNum=2 means Sensor#2
     LPAMP_SEL = LPAMP0;
   } else  {
     LPAMP_SEL = LPAMP1;
   }
+	
   lprtia_cal.LpAmpSel = LPAMP_SEL;
   lprtia_cal.bPolarResult = bTRUE;                /* Magnitude + Phase */
   lprtia_cal.AdcClkFreq = AppSWVCfg.AdcClkFreq;
@@ -769,7 +807,7 @@ AD5940Err AppSWVInit(uint32_t *pBuffer, uint32_t BufferSize) {
   AD5940_SEQCfg(&seq_cfg);
   /* Start sequence generator */
   /* Initialize sequencer generator */
-  if((AppSWVCfg.bParaChanged == bTRUE )|| (AppSWVCfg.SWVInited == bFALSE)) {
+  if(AppSWVCfg.bParaChanged == bTRUE) {
 		if(AppSWVCfg.SWVInited == bFALSE) {
 			if(pBuffer == 0)	
 				return AD5940ERR_PARA;
@@ -782,9 +820,10 @@ AD5940Err AppSWVInit(uint32_t *pBuffer, uint32_t BufferSize) {
 			} else	
 				AppSWVRtiaCal();	 
 			
-			AppSWVCfg.SWVInited = bFALSE; 	 			
+			AppSWVCfg.SWVInited = bFALSE; 
+			PreSensorNum=SensorNum;
 		}
-  
+		
     AD5940_SEQGenInit(pBuffer, BufferSize);
     /* Generate sequence and write them to SRAM start from address AppSWVCfg.SeqStartAddr */
 		// SEQID=3, Application initialization sequence 
@@ -869,6 +908,7 @@ static int32_t AppSWVDataProcess(int32_t * const pData, uint32_t *pDataCount) {
   for(i=0;i<datacount;i++)  {
     pData[i] &= 0xffff; 
     temp = AD5940_ADCCode2Volt(pData[i],AppSWVCfg.AdcPgaGain, AppSWVCfg.ADCRefVolt);
+   // pOut[i] = -temp/AppSWVCfg.RtiaValue.Magnitude*1e3f;  /* Result unit is uA. */
     pOut[i] = temp/AppSWVCfg.RtiaValue.Magnitude*1e3f;  /* Result unit is uA. */
   }
   return 0;
@@ -931,6 +971,43 @@ AD5940Err AppSWVISR(void *pBuff, uint32_t *pCount) {
   }
   return 0;
 } 
+
+// Selects the needed p+ and n- terminals for the ADC mux
+// SensorNum=1 means Sensor#1, SensorNum=2 means Sensor#2
+void AD5940ADCMuxCfgs(uint32_t *pMuxP,uint32_t *pMuxN){
+	if (SensorNum==1) {  	// For Sensor#1
+		switch (imeas) {
+		case OPT_MEAS_VSE0: //VSE0
+			*pMuxP = ADCMUXP_VSE0;
+			*pMuxN = ADCMUXN_VSET1P1;
+			break;
+		case OPT_MEAS_VRE0: //VRE0
+			*pMuxP = ADCMUXP_VRE0;
+			*pMuxN = ADCMUXN_VSET1P1;
+			break;
+		default: //current
+			*pMuxP = ADCMUXP_LPTIA0_P;   // 0x21(33) LPTIA0 output before the low-pass filter.
+			*pMuxN = ADCMUXN_LPTIA0_N;   // 0x2 : Low power TIA0 inverting input.
+			break;
+		} /* switch(imeas) */
+	} else {  					// For Sensor#2
+		switch (imeas) {
+		case OPT_MEAS_VSE0: //VSE0
+			*pMuxP = ADCMUXP_VSE1;
+			*pMuxN = ADCMUXN_VSET1P1;
+			break;
+		case OPT_MEAS_VRE0: //VRE0
+			*pMuxP = ADCMUXP_VRE1;
+			*pMuxN = ADCMUXN_VSET1P1;
+			break;
+		default: //current
+			*pMuxP = ADCMUXP_LPTIA1_P;   // 0x21(33) LPTIA0 output before the low-pass filter.
+			*pMuxN = ADCMUXN_LPTIA1_N;   // 0x2 : Low power TIA0 inverting input.
+			break;
+		} /* switch(imeas) */
+	}
+}
+
 
 /**
  * @}

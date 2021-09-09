@@ -38,14 +38,14 @@ int iForwardFlag = 0;
 int iReverseFlag = 0;
 
 /* All available resistor values for RTIA tuning. The index is the number which chooses the values according to ad5940.h */
-int RTIAvals[] = {0,200,1000,2000,3000,4000,6000,8000,10000,12000,16000,20000,24000,30000,32000,40000,48000,64000,85000,96000,100000,
-									120000,128000,160000,196000,256000,512000};
+int32_t RTIAvals[] = {0,     200,   1000,  2000,  3000,  4000,  6000, 8000, 10000,12000,
+                      16000, 20000, 24000, 30000, 32000, 40000, 48000,64000,85000,96000,
+                      100000,120000,128000,160000,196000,256000,512000};
 /**
 	* @brief Compute the best RTIA value for the given maximum current
 	* @param maxCurrent: uA of peak-to-peak current we will expect at maximum. Usually less than 50uA
-	* @return return RTIA index
-									
-*/
+	* @return return RTIA index									
+**/
 int getRTIA(float maxCurrent){
 	int32_t idealResistor = (int32_t)(0.9f/maxCurrent);
 	int32_t currentDiff = idealResistor-RTIAvals[0];
@@ -59,7 +59,6 @@ int getRTIA(float maxCurrent){
 		i++;
 		nextDiff = abs(idealResistor - RTIAvals[i]);
 	}
-	// fermi made the change so that always using resistor smaller than ideal resistor.
 	if(RTIAvals[i-1]>idealResistor) {
 		j=i-2;
 	} else {
@@ -67,7 +66,7 @@ int getRTIA(float maxCurrent){
 	}
 	return j;
 }
-
+									
 /**
 	* @brief Print the SWV scan data through UART in JSON format
 	* @param pData: the buffer stored data for this application. The data from FIFO has been pre-processed.
@@ -265,7 +264,7 @@ static int32_t AD5940PlatformCfg(void)
   seq_cfg.SeqCntCRCClr = bTRUE;
   seq_cfg.SeqEnable = bFALSE;
   seq_cfg.SeqWrTimer = 0;
-  AD5940_SEQCfg(&seq_cfg); 
+  AD5940_SEQCfg(&seq_cfg);	
   /* Step3. Interrupt controller */
   AD5940_INTCCfg(AFEINTC_1, AFEINTSRC_ALLINT, bTRUE);   /* Enable all interrupt in INTC1, so we can check INTC flags */
 	AD5940_INTCClrFlag(AFEINTSRC_ALLINT);
@@ -287,6 +286,7 @@ static int32_t AD5940PlatformCfg(void)
  * @brief The interface for user to change application paramters.
  * @return return 0.
 */
+
 void AD5940RampStructInit(float vStart, float vEnd, float vIncrement, float vAmplitude, float frequency, float maxCurrent, float channel) {
   AppSWVCfg_Type *pRampCfg;
   
@@ -315,7 +315,7 @@ void AD5940RampStructInit(float vStart, float vEnd, float vIncrement, float vAmp
 
   int rtiaVal = getRTIA(maxCurrent);
   // to use the widest range of voltage scan, we use 1.3[V] for VzeroStart/VzeroPeak. In this case, RTIA value should be 200[Ohm] - Fermi.
- // pRampCfg->LPTIARtiaSel = LPTIARTIA_200R; 		 
+  //pRampCfg->LPTIARtiaSel = LPTIARTIA_200R; 		 
   pRampCfg->LPTIARtiaSel = rtiaVal; 		 
   pRampCfg->AdcPgaGain = ADCPGA_1P5;
 }
@@ -336,50 +336,35 @@ void UART_Int_Handler()
 	ucCOMSTA0 = UrtLinSta(pADI_UART0);
 	ucCOMIID0 = UrtIntSta(pADI_UART0);
 	//  ucCOMIID0 = pADI_UART0->COMIIR;
-	if ((ucCOMIID0 & 0xE) == 0x2)	          // Transmit buffer empty
-	{
+	if ((ucCOMIID0 & 0xE) == 0x2)	 {         // Transmit buffer empty
 		ucTxBufferEmpty = 1;
 	}
-	if ((ucCOMIID0 & 0xE) == 0x4)	          // Receive byte
-	{
+	if ((ucCOMIID0 & 0xE) == 0x4)	 {         // Receive byte
 		iNumBytesInFifo = pADI_UART0->COMRFC;    // read the Num of bytes in FIFO
-		for (i=0; i<iNumBytesInFifo;i++)
-		{
+		for (i=0; i<iNumBytesInFifo;i++)	{
 			ucComRx = UrtRx(pADI_UART0);
 			char tempChar = (char) ucComRx;
 			if(tempChar == '*'){
-				//printf("%s\n",recvString);
-				//strcpy(recvString, "");
 				stringReceived = 1;
 				break;
-			}
-			else if (tempChar == '\n'){
+			}	else if (tempChar == '\n'){
 				continue;
-			}
-			else{
+			}	else{
 				strncat(recvString, &tempChar, 1);
 			}
-			
 		}
 	}
-	if ((ucCOMIID0 & 0xE) == 0xC)	          // UART Time-out condition
-	{
+	if ((ucCOMIID0 & 0xE) == 0xC)	  {        // UART Time-out condition
 		iNumBytesInFifo = pADI_UART0->COMRFC;    // read the Num of bytes in FIFO
-		for (i=0; i<iNumBytesInFifo;i++)
-		{
+		for (i=0; i<iNumBytesInFifo;i++) {
 			ucComRx = UrtRx(pADI_UART0);
-			char tempChar = (char) ucComRx;
+			char tempChar = (char) ucComRx;			
 			if(tempChar == '*'){
-				//printf("%s\n",recvString);
-				//strcpy(recvString, "");
 				stringReceived = 1;
 				break;
-			}
-			else if (tempChar == '\n'){
+			}	else if (tempChar == '\n'){
 				continue;
-			}
-			else
-			{
+			}	else	{
 				strncat(recvString, &tempChar, 1);
 			}
 		}
@@ -391,7 +376,7 @@ void UART_Int_Handler()
 	* @brief Main code which waits for UART, scans temperature, runs SWV with UART JSON parameters, and then outputs the data
 	* @return Infinite loop
 */
-int32_t SensorNum=0;
+int32_t SensorNum=1, PreSensorNum=1;
 int32_t gvPretreatment=0, gsecsPretreatment=0;
 void AD5940_Main(void)
 {
@@ -404,19 +389,15 @@ void AD5940_Main(void)
 	*/
 	AD5940PlatformCfg(); 
 	AD5940_ClrMCUIntFlag();
-	while(1)
-	{
-		if(AD5940_GetMCUIntFlag())
-		{
+	while(1){
+		if(AD5940_GetMCUIntFlag()) {
 			AD5940_ClrMCUIntFlag();
 			temp = APPBUFF_SIZE;
 			AppSWVISR(AppBuff, &temp);
 			uartPrint((float*)AppBuff, temp);
 		}
-		if (stringReceived == 1) // any received string will rerun the code ... for now
-		{
-			stringReceived = 0;
-			
+		if (stringReceived == 1) { // any received string will rerun the code ... for now		  			
+			stringReceived = 0;			
 			// Not sure why but the last character is getting cut off sometimes?? I think it's a UART processing issue
 			if(recvString[(strlen(recvString)-1)] != '}'){
 				strncat(recvString, "}", 1);
@@ -429,32 +410,21 @@ void AD5940_Main(void)
 			// If any key is missing besides "status", then we will continue the while loop and not scan
 			temp = cJSON_GetObjectItemCaseSensitive(json, "status"); // expecting the string {"status":1}* as the check to see if the ADuCM355 is connected, and will return the same json
 			int status = temp ? temp->valueint : UNDEFINED;
-			
 			temp = cJSON_GetObjectItemCaseSensitive(json, "chipInserted"); // expecting the string {"chipInserted":1}* as the check to see if the chip is connected, and will return the same json
 			int chipInserted = temp ? temp->valueint : UNDEFINED;
 			
-			temp = cJSON_GetObjectItemCaseSensitive(json, "version"); // expecting the string {"version":1}* as the check to return chip version
-			int version = temp ? temp->valueint : UNDEFINED;
-			
-			temp = cJSON_GetObjectItemCaseSensitive(json, "vScale");
-			float vScale = temp ? temp->valuedouble : UNDEFINED;
 			
 			if(status != UNDEFINED){
 				printf("{\"status\":1}*");
-			}
-			else if(chipInserted != UNDEFINED){
+			} else if(chipInserted != UNDEFINED){
 				if(isChipInserted()){
 					printf("{\"chipInserted\":1}*");
-				}
-				else{
+				}	else{
 					printf("{\"chipInserted\":0}*");
 				}
-			}
-			else if (version != UNDEFINED) {
-				printf("{\"version\":\"1.2.0\"}*");
-			}
-			else if (vScale != UNDEFINED) {
-	
+			}	else{				
+				temp = cJSON_GetObjectItemCaseSensitive(json, "vScale");
+				float vScale = temp ? temp->valuedouble : UNDEFINED;
 				float vFactor = vScale/.001; // turn everything into mV
 				
 				temp = cJSON_GetObjectItemCaseSensitive(json, "vStart");
@@ -475,7 +445,7 @@ void AD5940_Main(void)
 				temp = cJSON_GetObjectItemCaseSensitive(json, "iScale");
 				float iScale = temp ? temp->valuedouble : UNDEFINED;
 				float iFactor = iScale/1; // turn everything into A
-				
+			
 				temp = cJSON_GetObjectItemCaseSensitive(json, "maxCurrent");
 				float maxCurrent = temp ? temp->valuedouble * iFactor : UNDEFINED;
 				
@@ -486,7 +456,7 @@ void AD5940_Main(void)
 				iReverseFlag = temp ? (int) (temp->valuedouble) : UNDEFINED;
 				
 				temp = cJSON_GetObjectItemCaseSensitive(json, "channel");
-				float channel = temp ? (int) (temp->valuedouble) : UNDEFINED;
+				float channel = temp ? (int) (temp->valuedouble) : UNDEFINED;			
 				SensorNum=(int32_t)channel;
 				/* Pretreatment doesn't work yet */
 				gvPretreatment = (int32_t)(cJSON_GetObjectItemCaseSensitive(json, "vPretreatment")->valuedouble * vFactor);
@@ -494,8 +464,12 @@ void AD5940_Main(void)
 				
 				temp = cJSON_GetObjectItemCaseSensitive(json, "muxSelect"); // expecting the string {"setMuxSelect":0-3}* to set the MUX select pins, and will return the same json
 				int muxSelect = temp ? temp->valueint : UNDEFINED;
-				
-				AppSWVCfg.bParaChanged = bTRUE;				
+
+				AppSWVCfg.bParaChanged = bTRUE;			
+				if(SensorNum != PreSensorNum) {
+					AppSWVCfg.SWVInited = bFALSE; 	 			
+				}
+#if 0				
 				AD5940_TemperatureInit();
 				AD5940_WUPTCtrl(bTRUE);				
 				while(1){
@@ -508,20 +482,16 @@ void AD5940_Main(void)
 						AD5940_PrintTemperatureResult();
 						break;
 					}
-				}
-				
+				}				
+#endif				
 				// Set MUX pins
 				if(muxSelect != UNDEFINED){
 					setSelectPins((uint8_t) muxSelect);
 					//printf("{\"setMuxSelect\":%d}*",muxSelect);
-				}
-			
-				AD5940RampStructInit(vStart,vEnd,vIncrement,vAmplitude,frequency,maxCurrent,channel); // Initialize the SWV values
-				
-				AppSWVInit(AppBuff, APPBUFF_SIZE);    /* Initialize RAMP application. Provide a buffer, which is used to store sequencer commands */
-				
-				AppSWVCtrl(APPCTRL_START, 0);          /* Control IMP measurement to start. Second parameter has no meaning with this command. */
-				
+				}			  
+				AD5940RampStructInit(vStart,vEnd,vIncrement,vAmplitude,frequency, maxCurrent, channel); // Initialize the SWV values				
+				AppSWVInit(AppBuff, APPBUFF_SIZE);    /* Initialize RAMP application. Provide a buffer, which is used to store sequencer commands */				
+				AppSWVCtrl(APPCTRL_START, 0);          /* Control IMP measurement to start. Second parameter has no meaning with this command. */				
 			}
 			cJSON_Delete(json);
 		}

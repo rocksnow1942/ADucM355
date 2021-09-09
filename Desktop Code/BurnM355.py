@@ -1,3 +1,7 @@
+"""
+Script to run on M355
+to stress test the chip.
+"""
 import serial
 import json
 import time
@@ -78,23 +82,26 @@ def date():
 
 def log(name,text):
     toW = f"{date()} | {text} \n"
+    print(toW.strip(), end='\r')
     with open(f'./{name}.log','a') as f:
         f.write(toW)
-        
-        
-        
-if __name__ == '__main__':    
-    m = M355('/dev/serial0')
-    
-    logfile = 'M355Burn'
-    
-    cmd = {'vS': -843.5, 'vE': 0, 'vI': 5, 'vA': 100.0, 
-             'Hz': 100, 'iS': 100.0, 'vP': -600, 'tP': 10.0, 
-             'f': 0, 'r': 0, 'ch': 0, 'ps': 0}
 
-    log(logfile, "="*50)
-    log(logfile, "Started, with 3 checking loops and on board LED routines")
-    log(logfile, "="*50)
+def scanAndLog(m,cmd):
+    c = 'empty'
+    cmdstr = f"vS= {cmd['vS']:>7}, vE= {cmd['vE']:>7}, vI= {cmd['vI']:>2}, ps= {cmd['ps']:<2}, ch= {cmd['ch']},"
+    try:
+        t0 = time.perf_counter()
+        c = m.json(cmd)['c']
+        dt = time.perf_counter() - t0
+        time.sleep(0.1)        
+        maxC = max(c)
+        minC = min(c)
+        log(logfile,f"{cmdstr} T= {dt:>5.2f}, maxC= {maxC:>10.3f}, minC= {minC:>10.3f}")
+    except Exception as e:
+        log(logfile,f"{cmdstr} Error: {e}, Data = {c}")
+        
+        
+def stepSizeScan():    
     for stepSize in range(24): #test for 3 rounds.
         for vS in range(-600+stepSize,-50+stepSize,37):
             for step in range(4+stepSize,290,7):
@@ -115,7 +122,48 @@ if __name__ == '__main__':
                         log(logfile,f"Step= {step:<7}, vS= {vS:<7}, vE= {cmd['vE']:<7}, readTime= {dt:<5.2f}s, avgC= {avgC:<10.3f}, maxC= {maxC:<10.3f}, minC= {minC:<10.3f} ")
                     except Exception as e:
                         log(logfile,f"Step = {step}, Error: {e}, Data = {c}")
+        
+if __name__ == '__main__':    
+    # copy this file to Pico with scp:
+    """
+    scp ./BurnM355.py pi@ams-abe.local:/home/pi/BurnM355.py
+    """
+    
+    m = M355('/dev/serial0')
+    
+    logfile = 'M355Burn'
+    
+    cmd = {'vS': -843.5, 'vE': 0, 'vI': 5, 'vA': 100.0, 
+             'Hz': 100, 'iS': 100.0, 'vP': -600, 'tP': 100.0, 
+             'f': 0, 'r': 0, 'ch': 0, 'ps': 0}
+    ff = {"vS":-600,"vE":0,"vI":50,"vA":100,"Hz":100,
+            "iS":100,"vP":-600,"tP":1,"f":0,"r":0,"ch":0,"ps":1}
 
+    log(logfile, "="*50)
+    log(logfile, "Started, with 3 checking loops and on board LED routines")
+    log(logfile, "="*50)
+    
+    # test parameter
+    # on PS0
+    # potential range: 590 - 610mV, vS, -700mV to -300mV
+    # step size is always 5mV
+    # on PS1: 
+    # {"vS":-600,"vE":0,"vI":50,"vA":100,"Hz":100,"iS":100,"vP":-600,"tP":1,"f":0,"r":0,"ch":ch,"ps":1}
+    # switch channel between each scan. 
+    # scan 4 times on PS0 then 1 time on PS1    
+    for pR in range(599,601):        
+        for vS in range(-500,-490):
+            cmd['vS'] = vS
+            cmd['vP'] = vS
+            cmd['vE'] = vS + pR
+            cmd['vI'] = 5             
+            for ch in range(4):
+                cmd['ch'] = ch
+                scanAndLog(m,cmd)
+            ff['ch'] = random.randint(0,3)
+            scanAndLog(m,ff)
+            
+            
     log(logfile, "="*50)
     log(logfile, "Done")
     log(logfile, "="*50)
@@ -139,7 +187,7 @@ if __name__ == '__main__':
             errors.append(line)
             totalScan+=1
             continue
-        if 'Step=' in line:
+        if 'vS=' in line:
             totalScan+=1
             fields = line.split(',')
             minC = getVal(fields[-1])        
