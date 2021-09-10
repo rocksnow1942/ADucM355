@@ -1,0 +1,312 @@
+SWVMeasure call stack
+
+    AD5940RampStructInit // config the AppSWVCfg_Type
+        pRampCfg->RampStartVolt = -1.0 * (vStart + vAmplitude); /* 0V */
+        pRampCfg->RampPeakVolt = -1.0 * (vEnd + vAmplitude);	/* -0.6V */
+        pRampCfg->SqrWvRampIncrement = -1.0 * vIncrement;	/* Increment in mV. Make sure that the sign is correct */
+
+    AppSWVInit
+        AD5940_SEQCfg() // config sequencer; config with SEQCfg_Type seq_cfg
+        // if SWV is not inited, or parameter changed {
+            // if SWV is not inited, {
+                AppSWVRtiaCal() // run RTIA calibration
+            } 
+            // always run 
+            AD5940_SEQGenInit() //
+            AppSWVSeqInitGen()
+            AppSWVSeqADCCtrlGen()
+        }
+        AD5940_FIFOCtrlS()
+        AD5940_FIFOCfg()
+        AD5940_INTCClrFlag() // clear Interrupts
+        AppSWVSeqDACCtrlGen()
+            RampDacRegUpdate()
+
+        AD5940_SEQInfoCfg()
+        AD5940_SEQCtrlS(bTRUE) // enable sequencer 
+        AD5940_SEQMmrTrig()
+        while(AD5940_INTCTestFlag(AFEINTC_1, AFEINTSRC_ENDSEQ) == bFALSE); // can sometimes halt: this might be why it stops
+        AD5940_INTCClrFlag()
+        AD5940_SEQInfoCfg()
+        AD5940_SEQInfoCfg()
+        AD5940_SEQCtrlS(bFALSE);
+        AD5940_WriteReg(REG_AFE_SEQCNT, 0);
+        AD5940_SEQCtrlS(bTRUE);
+        AD5940_ClrMCUIntFlag()
+        AD5940_AFEPwrBW()
+
+
+    AppSWVCtrl(APPCTRL_START,0)
+        case APPCTRL_START:
+            AD5940_WUPTCfg(WUPTCfg_Type wupt_cfg)
+                void AD5940_WUPTCfg(WUPTCfg_Type *pWuptCfg) // 
+                    AD5940_WriteReg(REG_WUPTMR_CON, tempreg) // the swv scan
+                        AD5940_D2DWriteReg(RegAddr, RegData); // after write data, will keep generating the SWV in one test, normally just do once.
+        case APPCTRL_STOPNOW:
+            AD5940_WUPTCtrl(bFALSE)
+        case APPCTRL_STOPSYNC:
+        case APPCTRL_SHUTDOWN:
+            AppSWVCtrl(APPCTRL_STOPNOW, 0);  /* Stop the measurment if it's running. */
+            AD5940_ShutDownS()
+
+
+
+***Print Result to UART***
+
+AD5940_ClrMCUIntFlag()
+AppSWVISR(AppBuff, &dataCount)
+uartPrint((float *)AppBuff, dataCount);
+
+
+
+FifoCnt 536879628
+
+
+inside AppSWVISR
+AFEINTSRC_CUSTOMINT0 = 0x00000200
+
+AFEINTSRC_DATAFIFOTHRESH = 0x02000000
+
+IntFlag 
+0x00000200
+0x00008000 => no data returned. 
+FifoCnt = AD5940_FIFOGetCnt(); == 0
+
+0x00008200 => return normally.
+
+
+while(AD5940_INTCTestFlag(AFEINTC_1, AFEINTSRC_ENDSEQ) == bFALSE); cannot step over, causing freeze. 
+
+
+
+
+when causing freeze in " while(AD5940_INTCTestFlag(AFEINTC_1, AFEINTSRC_ENDSEQ) == bFALSE); // can"
+AD5940_INTCTestFlag 
+regaddr == 0x00003014
+tempreg == 0x00004021
+AfeIntSrcSel == 0x00008000
+
+when not blocking:
+regaddr == 0x00003014
+tempreg == 0x00008000
+AfeIntSrcSel == 0x00008000
+
+
+
+DACData = 129136
+
+DACData = 128958
+
+
+
+
+
+ DACSeqLenMax -= SEQLEN_ONESTEP*2;  /* Reserve commands each block */
+StepsPerBlock = DACSeqLenMax/SEQLEN_ONESTEP/2;
+DACSeqBlk0Addr = AppSWVCfg.ADCSeqInfo.SeqRamAddr + AppSWVCfg.ADCSeqInfo.SeqLen;
+DACSeqBlk1Addr = DACSeqBlk0Addr + StepsPerBlock*SEQLEN_ONESTEP;
+DACSeqCurrBlk = CURRBLK_BLK0;    
+
+
+ppSWVCfg.DACCodePerStep = 186.136353
+AppSWVCfg.DACCodePerRamp = -9.30
+
+
+cblk=0,dac=128978
+cblk=0,dac=128782
+cblk=0,dac=128969
+FB cblk=0,dac=128772
+{"c":[48.685,49.049,48.847,48.996,49.084,48.711,48.720,48.979,48.601,48.667,48.790,48.544,48.535,48.649,48.724,48.386,48.654,48.627,48.290,48.351,48.487,48.237,48.224,48.329,48.132,47.996,48.268,48.219,47.868,48.162,48.031,47.798,47.719,47.873,47.662,47.548,47.868,47.592,47.574,47.960,47.899,47.789,47.820,48.083,47.982,47.930,48.307,48.044,48.031,48.364]}*
+
+
+
+cblk=0,dac=128791
+cblk=0,dac=128978
+cblk=0,dac=128782
+cblk=0,dac=128969
+FB cblk=0,dac=128772
+{"c":[0.132,-0.255,-0.167,0.075,-0.338,0.044,0.057,0.255,0.083,-0.259,0.048,-0.430,-0.048,0.075,-0.206,0.434,0.114,0.105,0.075,-0.312,0.202,0.136,0.088,0.158,-0.018,0.149,-0.219,0.066,0.075,-0.061,0.351,-0.079,-0.101,0.022,-0.009,0.575,0.057,0.320,0.048,-0.053,0.206,-0.048,0.290,0.035,-0.048,0.202,-0.197,0.233,-0.004,0.044]}*
+
+
+
+cblk=0,dac=129336
+cblk=1,dac=128777
+FB cblk=1,dac=128582
+
+cblk=0,dac=129336
+cblk=1,dac=128777
+FB cblk=1,dac=128964
+{"c":[-0.004,0.000,0.004,-0.004,0.000,0.000,0.000,-0.004,-0.004,-0.009,0.000,0.000,0.000,0.000,-0.004,0.004,-0.004,0.004,-0.004,0.004,0.004,0.004,0.004,0.000,-0.004,-0.004,0.009,0.009,0.004,0.009,0.004,0.004,0.009,0.004,0.004,0.000,0.000,0.004,0.004,-0.004,0.009,0.004,0.009,0.136,0.900,2.199,4.722,7.075,9.300,11.867,14.175,16.453,18.814,21.281,23.602,25.920,28.447,30.831,33.069,35.667,37.984,40.279,42.662,45.160,47.130,48.407,48.956,48.771,48.706,48.947,48.728,48.631,48.973,48.850,48.631,48.671,48.789,48.605,48.508,48.767,48.504,48.385,48.675,48.583,48.355,48.600,48.499,48.315,48.218,48.504,48.210,48.100,48.394,48.034,48.043,48.227,48.122,47.911,48.034,48.056,47.758,47.644,47.903,47.538,47.556,47.736,47.420,47.525,47.692,47.815,47.582,47.837,47.960,47.701,47.828,48.096,47.859,47.990,48.148,48.008]}*
+
+
+cblk=0,dac=129336
+cblk=1,dac=128777
+FB cblk=1,dac=128582
+
+cblk=0,dac=129336
+cblk=1,dac=128777
+FB cblk=1,dac=128964
+{"c":[-0.009,0.000,0.000,0.004,0.000,-0.013,-0.004,-0.009,0.004,-0.009,0.004,0.009,0.000,0.000,0.013,0.009,0.000,0.004,-0.004,0.000,0.000,0.009,0.000,0.000,0.000,-0.004,-0.004,0.004,0.000,0.000,-0.009,-0.004,0.004,-0.004,0.004,0.004,0.000,0.004,0.000,0.000,0.013,0.004,0.009,0.154,0.895,2.207,4.753,7.013,9.348,11.836,14.193,16.453,18.766,21.325,23.563,25.942,28.483,30.765,33.091,35.632,38.015,40.293,42.610,45.217,47.082,48.403,49.004,48.671,48.750,48.894,48.692,48.692,48.850,48.934,48.592,48.640,48.842,48.508,48.578,48.732,48.504,48.429,48.600,48.671,48.302,48.605,48.556,48.249,48.315,48.438,48.249,48.153,48.346,48.139,48.008,48.267,48.179,47.885,48.153,48.008,47.802,47.666,47.876,47.648,47.512,47.793,47.464,47.481,47.802,47.736,47.652,47.881,47.942,47.802,47.762,48.161,47.872,47.946,48.262,47.942]}*
+
+
+
+
+
+
+
+cblk=0,dac=128586
+FB cblk=0,dac=128772
+
+
+cblk=0,dac=128586
+FB cblk=0,dac=128772
+{"c":[-44.633,-45.076,-45.041,-45.120,-45.164,-45.085,-45.405,-45.067,-45.103,-45.094,-44.988,-45.050,-44.936,-44.945,-44.931,-44.857,-44.945,-44.901,-45.015,-45.296,-45.050,-45.230,-45.212,-45.344,-45.401,-45.405,-45.524,-45.476,-45.550,-45.533,-45.502,-45.607,-45.748,-45.594,-45.590,-45.559,-45.669,-45.607,-45.730,-45.748,-45.739,-45.884,-46.099,-45.967,-45.989,-46.257,-46.147,-46.090,-46.235,-46.235]}*
+
+
+
+
+
+
+
+100, 102, 104, 106, 108, 212, 214, 216, 218, 220, 222 steps are bad
+
+PerBlock 59
+
+
+
+// 8/13/2021, after added delay sequence
+after AD5940_SEQCtrlS(bTRUE) // enable sequencer 
+and in AppSWVISR; run scan, still a few scans behave abnormally. (now all scan gives current reading)
+run a 3 fold burn test
+vS: [-600, -553, -506, -459, -412, -365, -318, -271, -224, -177, -130, -83, -599, -552, -505, -458, -411, -364, -317, -270, -223, -176, -129, -82, -598, -551, -504, -457, -410, -363, -316, -269, -222, -175, -128, -81]
+step size:
+[4-290]
+
+step = 80 - 
+
+08/12 22:31:04 | Step = 81, vS=-81,vE=121.5, readTime = 0.49s, avgC = -44.5319  
+08/12 22:31:05 | Step = 84, vS=-81,vE=129.0, readTime = 0.52s, avgC = -44.6235  
+08/12 22:31:07 | Step = 84, vS=-81,vE=129.0, readTime = 0.51s, avgC = -44.6135  
+08/12 22:31:08 | Step = 87, vS=-81,vE=136.5, readTime = 0.52s, avgC = -44.6505  
+08/12 22:31:10 | Step = 87, vS=-81,vE=136.5, readTime = 0.53s, avgC = -44.6497  
+08/12 22:31:11 | Step = 90, vS=-81,vE=144.0, readTime = 0.54s, avgC = -44.7253  
+08/12 22:33:18 | Step = 192, vS=-81,vE=399.0, readTime = 1.11s, avgC = -30.7436  
+08/12 22:33:20 | Step = 195, vS=-81,vE=406.5, readTime = 1.13s, avgC = -30.4308  
+08/12 22:33:22 | Step = 195, vS=-81,vE=406.5, readTime = 1.12s, avgC = -30.4365  
+08/12 22:33:25 | Step = 198, vS=-81,vE=414.0, readTime = 1.14s, avgC = -29.8185  
+08/12 22:33:27 | Step = 198, vS=-81,vE=414.0, readTime = 1.15s, avgC = -29.8159  
+08/12 22:33:29 | Step = 201, vS=-81,vE=421.5, readTime = 1.16s, avgC = -29.5337  
+08/12 22:33:31 | Step = 201, vS=-81,vE=421.5, readTime = 1.16s, avgC = -29.5284  
+08/12 22:33:33 | Step = 204, vS=-81,vE=429.0, readTime = 1.18s, avgC = -28.9522  
+
+
+08/13 11:33:51 | Step = 54, vS=-53,vE=82.0, readTime = 0.34s, avgC = -43.3370  
+08/13 11:33:52 | Step = 55, vS=-53,vE=84.5, readTime = 0.34s, avgC = -43.3399  
+08/13 11:33:53 | Step = 55, vS=-53,vE=84.5, readTime = 0.34s, avgC = -43.3382  
+08/13 11:33:55 | Step = 56, vS=-53,vE=87.0, readTime = 0.35s, avgC = -43.4304  
+08/13 11:33:56 | Step = 56, vS=-53,vE=87.0, readTime = 0.36s, avgC = -43.4311  
+08/13 11:33:57 | Step = 57, vS=-53,vE=89.5, readTime = 0.35s, avgC = -43.4272  
+08/13 11:33:59 | Step = 57, vS=-53,vE=89.5, readTime = 0.36s, avgC = -43.4306  
+08/13 11:34:00 | Step = 58, vS=-53,vE=92.0, readTime = 0.36s, avgC = -43.5255  
+08/13 11:34:02 | Step = 58, vS=-53,vE=92.0, readTime = 0.37s, avgC = -43.5291  
+08/13 11:34:03 | Step = 59, vS=-53,vE=94.5, readTime = 0.36s, avgC = -43.5274  
+08/13 11:34:04 | Step = 59, vS=-53,vE=94.5, readTime = 0.37s, avgC = -43.5200  
+08/13 11:34:06 | Step = 60, vS=-53,vE=97.0, readTime = 0.38s, avgC = -43.6062  
+08/13 11:34:07 | Step = 60, vS=-53,vE=97.0, readTime = 0.37s, avgC = -43.6082  
+08/13 11:34:09 | Step = 61, vS=-53,vE=99.5, readTime = 0.38s, avgC = -43.6105  
+08/13 11:34:10 | Step = 61, vS=-53,vE=99.5, readTime = 0.38s, avgC = -43.6108  
+
+
+08/13 11:40:03 | Step = 166, vS=-53,vE=362.0, readTime = 0.97s, avgC = -32.2626  
+08/13 11:40:05 | Step = 167, vS=-53,vE=364.5, readTime = 0.97s, avgC = -32.2623  
+08/13 11:40:07 | Step = 167, vS=-53,vE=364.5, readTime = 0.97s, avgC = -32.2621  
+08/13 11:40:09 | Step = 168, vS=-53,vE=367.0, readTime = 0.98s, avgC = -31.8840  
+08/13 11:40:11 | Step = 168, vS=-53,vE=367.0, readTime = 0.98s, avgC = -31.8806  
+08/13 11:40:13 | Step = 169, vS=-53,vE=369.5, readTime = 0.98s, avgC = -31.8811  
+08/13 11:40:15 | Step = 169, vS=-53,vE=369.5, readTime = 0.98s, avgC = -31.8803  
+08/13 11:40:17 | Step = 170, vS=-53,vE=372.0, readTime = 0.99s, avgC = -31.5110  
+08/13 11:40:19 | Step = 170, vS=-53,vE=372.0, readTime = 0.99s, avgC = -31.5104  
+08/13 11:40:21 | Step = 171, vS=-53,vE=374.5, readTime = 0.99s, avgC = -31.5113  
+08/13 11:40:23 | Step = 171, vS=-53,vE=374.5, readTime = 0.99s, avgC = -31.5105  
+08/13 11:40:25 | Step = 172, vS=-53,vE=377.0, readTime = 1.00s, avgC = -31.1485  
+08/13 11:40:27 | Step = 172, vS=-53,vE=377.0, readTime = 1.00s, avgC = -31.1476  
+08/13 11:40:29 | Step = 173, vS=-53,vE=379.5, readTime = 1.00s, avgC = -31.1494  
+08/13 11:40:31 | Step = 173, vS=-53,vE=379.5, readTime = 1.00s, avgC = -31.1483  
+08/13 11:40:33 | Step = 174, vS=-53,vE=382.0, readTime = 1.01s, avgC = -30.7948  
+08/13 11:40:35 | Step = 174, vS=-53,vE=382.0, readTime = 1.01s, avgC = -30.7961  
+08/13 11:40:37 | Step = 175, vS=-53,vE=384.5, readTime = 1.01s, avgC = -30.7959  
+08/13 11:40:39 | Step = 175, vS=-53,vE=384.5, readTime = 1.01s, avgC = -30.7947  
+
+
+
+08/13 11:48:33 | Step = 278, vS=-53,vE=642.0, readTime = 1.57s, avgC = -19.3559  
+08/13 11:48:35 | Step = 279, vS=-53,vE=644.5, readTime = 1.57s, avgC = -19.3570  
+08/13 11:48:38 | Step = 279, vS=-53,vE=644.5, readTime = 1.57s, avgC = -19.3583  
+08/13 11:48:41 | Step = 280, vS=-53,vE=647.0, readTime = 1.58s, avgC = -19.2199  
+08/13 11:48:43 | Step = 280, vS=-53,vE=647.0, readTime = 1.59s, avgC = -19.2191  
+08/13 11:48:46 | Step = 281, vS=-53,vE=649.5, readTime = 1.58s, avgC = -19.2196  
+08/13 11:48:48 | Step = 281, vS=-53,vE=649.5, readTime = 1.58s, avgC = -19.2197  
+08/13 11:48:51 | Step = 282, vS=-53,vE=652.0, readTime = 1.59s, avgC = -19.0844  
+08/13 11:48:53 | Step = 282, vS=-53,vE=652.0, readTime = 1.59s, avgC = -19.0845  
+08/13 11:48:56 | Step = 283, vS=-53,vE=654.5, readTime = 1.59s, avgC = -19.0847  
+08/13 11:48:59 | Step = 283, vS=-53,vE=654.5, readTime = 1.59s, avgC = -19.0839  
+08/13 11:49:01 | Step = 284, vS=-53,vE=657.0, readTime = 1.60s, avgC = -18.9516  
+08/13 11:49:04 | Step = 284, vS=-53,vE=657.0, readTime = 1.60s, avgC = -18.9507  
+08/13 11:49:07 | Step = 285, vS=-53,vE=659.5, readTime = 1.60s, avgC = -18.9504  
+08/13 11:49:09 | Step = 285, vS=-53,vE=659.5, readTime = 1.61s, avgC = -18.9519  
+08/13 11:49:12 | Step = 286, vS=-53,vE=662.0, readTime = 1.62s, avgC = -18.8187  
+08/13 11:49:14 | Step = 286, vS=-53,vE=662.0, readTime = 1.62s, avgC = -18.8191  
+08/13 11:49:17 | Step = 287, vS=-53,vE=664.5, readTime = 1.61s, avgC = -18.8195  
+08/13 11:49:20 | Step = 287, vS=-53,vE=664.5, readTime = 1.61s, avgC = -18.8190  
+08/13 11:49:22 | Step = 288, vS=-53,vE=667.0, readTime = 1.62s, avgC = -18.6891  
+08/13 12:23:26 | Step = 98, vS=-100,vE=145.0, readTime = 0.62s, avgC = -44.9815  
+08/13 12:23:28 | Step = 99, vS=-100,vE=147.5, readTime = 0.62s, avgC = -44.9824  
+08/13 12:23:29 | Step = 99, vS=-100,vE=147.5, readTime = 0.62s, avgC = -44.9812  
+08/13 12:23:31 | Step = 100, vS=-100,vE=150.0, readTime = 0.63s, avgC = -45.0176  
+08/13 12:23:33 | Step = 100, vS=-100,vE=150.0, readTime = 0.63s, avgC = -45.0156  
+08/13 12:23:34 | Step = 101, vS=-100,vE=152.5, readTime = 0.63s, avgC = -45.0188  
+08/13 12:23:36 | Step = 101, vS=-100,vE=152.5, readTime = 0.63s, avgC = -45.0178  
+08/13 12:23:37 | Step = 102, vS=-100,vE=155.0, readTime = 0.64s, avgC = -45.0486  
+08/13 12:23:39 | Step = 102, vS=-100,vE=155.0, readTime = 0.64s, avgC = -45.0507  
+08/13 12:23:41 | Step = 103, vS=-100,vE=157.5, readTime = 0.64s, avgC = -45.0468  
+08/13 12:23:42 | Step = 103, vS=-100,vE=157.5, readTime = 0.65s, avgC = -45.0465  
+08/13 12:23:44 | Step = 104, vS=-100,vE=160.0, readTime = 0.65s, avgC = -45.0775  
+08/13 12:23:46 | Step = 104, vS=-100,vE=160.0, readTime = 0.66s, avgC = -45.0772  
+08/13 12:23:47 | Step = 105, vS=-100,vE=162.5, readTime = 0.65s, avgC = -45.0737  
+08/13 12:23:49 | Step = 105, vS=-100,vE=162.5, readTime = 0.66s, avgC = -45.0737  
+08/13 12:23:51 | Step = 106, vS=-100,vE=165.0, readTime = 0.66s, avgC = -45.1045  
+08/13 12:23:52 | Step = 106, vS=-100,vE=165.0, readTime = 0.67s, avgC = -45.1035  
+08/13 12:23:54 | Step = 107, vS=-100,vE=167.5, readTime = 0.66s, avgC = -45.1029  
+08/13 12:23:56 | Step = 107, vS=-100,vE=167.5, readTime = 0.66s, avgC = -45.1000  
+08/13 12:23:57 | Step = 108, vS=-100,vE=170.0, readTime = 0.67s, avgC = -45.1319   
+
+
+
+08/13 13:13:07 | Step = 127, vS=-100,vE=217.5, readTime = 0.78s, avgC = -45.1085  
+08/13 13:13:09 | Step = 127, vS=-100,vE=217.5, readTime = 0.78s, avgC = -45.1101  
+08/13 13:13:11 | Step = 128, vS=-100,vE=220.0, readTime = 0.79s, avgC = -44.9678  
+08/13 13:13:13 | Step = 128, vS=-100,vE=220.0, readTime = 0.79s, avgC = -44.9684  
+08/13 13:13:15 | Step = 129, vS=-100,vE=222.5, readTime = 0.79s, avgC = -44.9676  
+08/13 13:13:16 | Step = 129, vS=-100,vE=222.5, readTime = 0.79s, avgC = -44.9691  
+08/13 13:13:18 | Step = 130, vS=-100,vE=225.0, readTime = 0.80s, avgC = -44.7948  
+08/13 13:13:20 | Step = 130, vS=-100,vE=225.0, readTime = 0.79s, avgC = -44.7915  
+08/13 13:13:22 | Step = 131, vS=-100,vE=227.5, readTime = 0.80s, avgC = -44.7934  
+08/13 13:13:24 | Step = 131, vS=-100,vE=227.5, readTime = 0.80s, avgC = -44.7934  
+08/13 13:13:25 | Step = 132, vS=-100,vE=230.0, readTime = 0.81s, avgC = -44.5873  
+08/13 13:13:27 | Step = 132, vS=-100,vE=230.0, readTime = 0.81s, avgC = -44.5859  
+08/13 13:13:29 | Step = 133, vS=-100,vE=232.5, readTime = 0.81s, avgC = -44.5900  
+08/13 13:13:31 | Step = 133, vS=-100,vE=232.5, readTime = 0.81s, avgC = -44.5882  
+08/13 13:13:33 | Step = 134, vS=-100,vE=235.0, readTime = 0.82s, avgC = -44.3507  
+08/13 13:13:34 | Step = 134, vS=-100,vE=235.0, readTime = 0.82s, avgC = -44.3500  
+08/13 13:13:36 | Step = 135, vS=-100,vE=237.5, readTime = 0.82s, avgC = -44.3507  
+08/13 13:13:38 | Step = 135, vS=-100,vE=237.5, readTime = 0.82s, avgC = -44.3505  
+08/13 13:13:40 | Step = 136, vS=-100,vE=240.0, readTime = 0.83s, avgC = -44.0836  
+08/13 13:13:42 | Step = 136, vS=-100,vE=240.0, readTime = 0.83s, avgC = -44.0850  
+08/13 13:13:44 | Step = 137, vS=-100,vE=242.5, readTime = 0.83s, avgC = -44.0846  
+08/13 13:13:45 | Step = 137, vS=-100,vE=242.5, readTime = 0.83s, avgC = -44.0865  
+08/13 13:13:47 | Step = 138, vS=-100,vE=245.0, readTime = 0.85s, avgC = -43.7930  
+08/13 13:13:49 | Step = 138, vS=-100,vE=245.0, readTime = 0.85s, avgC = -43.7928  
+08/13 13:13:51 | Step = 139, vS=-100,vE=247.5, readTime = 0.84s, avgC = -43.7953  
+08/13 13:13:53 | Step = 139, vS=-100,vE=247.5, readTime = 0.84s, avgC = -43.7906  
+08/13 13:13:55 | Step = 140, vS=-100,vE=250.0, readTime = 0.86s, avgC = -43.4732  
+
